@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lumina Turf (スマホ専用 南関版)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f4f1eb;
+            --panel-bg: #fffefe;
+            --panel-border: #111;
+            --text-main: #111;
+            --text-muted: #444;
+            --mark-◎: #e63946;
+            --mark-〇: #e63946;
+            --mark-▲: #111;
+            --mark-△: #111;
+            --mark-✕: #78716c;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 5px;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        .container {
+            width: 100%;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            padding: 10px;
+            box-sizing: border-box;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: none; /* 初期非表示 (パスワードロック) */
+        }
+
+        h1 {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 1.4rem;
+            font-weight: 900;
+            margin: 0 0 5px 0;
+            text-align: center;
+        }
+
+        .input-area {
+            margin-bottom: 15px;
+            background: #fafafa;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .input-area textarea {
+            width: 100%;
+            height: 80px;
+            font-size: 14px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            padding: 5px;
+            border: 1px solid #aaa;
+            border-radius: 4px;
+        }
+        .btn-parse {
+            width: 100%;
+            background: #222;
+            color: #fff;
+            padding: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-parse:active { background: #000; }
+
+        /* ピックアップエリア */
+        .pickup-area {
+            display: none;
+            background: #fff8e1;
+            border: 2px solid #ffb300;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .pickup-area.active { display: block; }
+        .pickup-title {
+            font-size: 1rem;
+            font-weight: 900;
+            color: #d84315;
+            margin-bottom: 5px;
+            border-bottom: 1px dotted #ffcc80;
+            padding-bottom: 3px;
+        }
+        .pickup-horse {
+            display: inline-block;
+            background: #fff;
+            border: 1px solid #ffcc80;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin: 0 5px 5px 0;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        /* テーブル (スマホ最適化) */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid var(--panel-border);
+            margin-bottom: 20px;
+        }
+        table {
+            width: 800px; /* 横スクロールを前提とした最小幅 */
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid #777;
+            padding: 4px;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 0.85rem;
+            word-wrap: break-word;
+        }
+        th {
+            background: #e9e9e9;
+            font-weight: 900;
+            font-size: 0.8rem;
+        }
+        
+        /* 列幅設定 */
+        th.w-waku { width: 35px; }
+        th.w-num { width: 35px; }
+        th.w-mark { width: 45px; }
+        th.w-name { width: 150px; }
+        th.w-past { width: 140px; }
+
+        tr.horse-row:active { background: #fdf8e6; }
+        tr.dimmed-row { opacity: 0.35; filter: grayscale(100%); }
+
+        .waku-box {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; font-weight: bold; font-size: 0.9rem; border: 1px solid #111;
+        }
+        .waku-box[data-waku="1"] { background: #fff; color: #111; }
+        .waku-box[data-waku="2"] { background: #333; color: #fff; }
+        .waku-box[data-waku="3"] { background: #ffebee; color: #d32f2f; }
+        .waku-box[data-waku="4"] { background: #e3f2fd; color: #1976d2; }
+        .waku-box[data-waku="5"] { background: #fffde7; color: #fbc02d; }
+        .waku-box[data-waku="6"] { background: #e8f5e9; color: #388e3c; }
+        .waku-box[data-waku="7"] { background: #fff3e0; color: #f57c00; }
+        .waku-box[data-waku="8"] { background: #fce4ec; color: #c2185b; }
+
+        .horse-num { font-size: 1.1rem; font-weight: 900; }
+        
+        .shirushi-select {
+            appearance: none; -webkit-appearance: none;
+            background: transparent; border: none; font-size: 1.5rem; font-family: 'Noto Serif JP', serif;
+            font-weight: bold; cursor: pointer; width: 100%; height: 100%; text-align: center; text-align-last: center;
+            outline: none; min-height: 35px;
+        }
+        .shirushi-select.mark-◎, .shirushi-select.mark-〇 { color: var(--mark-◎); }
+        .shirushi-select.mark-無 { color: #ccc; font-weight: normal; }
+
+        .horse-name { font-size: 1rem; font-weight: 900; margin-bottom: 2px; }
+        .horse-sub { font-size: 0.75rem; color: #444; }
+        .jockey { font-size: 0.85rem; font-weight: bold; color: #1565c0; margin-top: 2px; }
+        .odds { font-size: 0.85rem; font-weight: bold; color: #d32f2f; margin-top: 2px; }
+
+        /* 過去走スタイル */
+        .past-race { font-size: 0.75rem; line-height: 1.3; text-align: left; padding: 2px; }
+        .race-header { color: #333; border-bottom: 1px dotted #999; margin-bottom: 2px; padding-bottom: 2px; font-weight: bold; }
+        .race-name { font-size: 0.7rem; color: #0056b3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; }
+        .time-display { font-weight: 900; margin-top: 2px; font-size: 0.8rem; }
+        .passing { color: #555; font-size: 0.7rem; }
+
+        /* パスワードロック画面 */
+        #auth-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f4f1eb; z-index: 9999;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+            padding: 20px; box-sizing: border-box;
+        }
+        #auth-modal.hidden { display: none; }
+        .auth-box {
+            background: #fff; padding: 20px; border: 2px solid #111; border-radius: 8px;
+            text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 320px;
+        }
+        .auth-input {
+            width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc;
+            font-size: 1.2rem; box-sizing: border-box; text-align: center; border-radius: 4px;
+        }
+        .auth-btn {
+            background: #111; color: #fff; padding: 12px; font-size: 1.1rem;
+            border: none; cursor: pointer; width: 100%; border-radius: 4px; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 簡易パスワードロック -->
+<div id="auth-modal">
+    <div class="auth-box">
+        <h2 style="margin-top:0;">🔒 LUMINA TURF</h2>
+        <p style="font-size: 0.85rem; color: #555;">共有された合言葉を入力してください</p>
+        <input type="password" id="auth-password" class="auth-input" placeholder="合言葉" onkeydown="if(event.key==='Enter') checkAuth()">
+        <button class="auth-btn" onclick="checkAuth()">ログイン</button>
+        <div id="auth-error" style="color: #d32f2f; margin-top: 10px; font-weight: bold; display: none; font-size: 0.9rem;">合言葉が違います</div>
+    </div>
+</div>
+
+<div class="container">
+    <h1>📱 南関スマホ馬柱解析</h1>
+    
+    <div class="input-area">
+        <textarea id="race-data-input" placeholder="nankankeiba.comの出走表ページ全体をコピーしてここにペースト..."></textarea>
+        <button class="btn-parse" onclick="executeParse()">馬柱を生成する</button>
+    </div>
+
+    <!-- ピックアップ（推し騎手等） -->
+    <div id="pickup-container" class="pickup-area">
+        <div class="pickup-title">💡 ピックアップ騎手 (笹川・野畑)</div>
+        <div id="pickup-list"></div>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th class="w-waku">枠</th>
+                    <th class="w-num">番</th>
+                    <th class="w-mark">印</th>
+                    <th class="w-name">馬名・騎手</th>
+                    <th class="w-past">前走</th>
+                    <th class="w-past">2走前</th>
+                    <th class="w-past">3走前</th>
+                </tr>
+            </thead>
+            <tbody id="horse-list">
+                <tr>
+                    <td colspan="7" style="padding: 20px; color: #666;">データを貼り付けて「生成」を押してください。</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // パスワード処理
+    const SECRET_PASSWORD = "lumina";
+    document.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('lumina_auth_passed_sp') === 'true') {
+            unlockApp();
+        }
+    });
+
+    function checkAuth() {
+        const input = document.getElementById('auth-password').value;
+        if (input === SECRET_PASSWORD) {
+            localStorage.setItem('lumina_auth_passed_sp', 'true');
+            unlockApp();
+        } else {
+            document.getElementById('auth-error').style.display = 'block';
+        }
+    }
+    
+    function unlockApp() {
+        document.getElementById('auth-modal').classList.add('hidden');
+        document.querySelector('.container').style.display = 'block';
+    }
+
+    // 印の変更
+    function changeMark(select) {
+        const val = select.value;
+        select.className = `shirushi-select mark-${val}`;
+        const row = select.closest('tr');
+        if (val === '✕' || val === '消') {
+            row.classList.add('dimmed-row');
+        } else {
+            row.classList.remove('dimmed-row');
+        }
+    }
+
+    // 南関テキストのパースロジック
+    function parseNankanText(text) {
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
+        const horses = [];
+        
+        // 前走データがあるブロックの開始位置を探す
+        let startIndex = 0;
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('前走') && lines[i+1] && lines[i+1].includes('前々走')) {
+                startIndex = i;
+                break;
+            }
+        }
+        
+        if (startIndex === 0) {
+            startIndex = lines.findIndex(l => l.match(/\[.*\]\(\/uma_info/));
+            if(startIndex < 0) startIndex = 0;
+        }
+
+        let currentHorse = null;
+        let pastRaceObj = null;
+        let horseCount = 0;
+        
+        for (let i = startIndex; i < lines.length; i++) {
+            let line = lines[i];
+            
+            // 馬名の取得: [馬名](/uma_info/...)
+            let umaMatch = line.match(/\[(.*?)\]\(\/uma_info\/\d+\.do\)/);
+            if (umaMatch) {
+                let umaName = umaMatch[1];
+                
+                currentHorse = {
+                    id: horseCount++,
+                    waku: 99,
+                    num: 99,
+                    name: umaName,
+                    seirei: '',
+                    jockey: '',
+                    weight: '',
+                    odds: '',
+                    pastRaces: []
+                };
+                
+                // 上に遡って枠番・馬番を探す
+                for(let j = i - 1; j >= Math.max(0, i - 10); j--) {
+                    if (lines[j].match(/^\d+$/)) {
+                        currentHorse.num = parseInt(lines[j]);
+                        if (j > 0 && lines[j-1].match(/^\d+$/)) {
+                            currentHorse.waku = parseInt(lines[j-1]);
+                        }
+                        break;
+                    }
+                }
+                
+                // 下を読んで性齢を取得
+                if (i+1 < lines.length && lines[i+1].match(/牝|牡|セ/)) {
+                    currentHorse.seirei = lines[i+1];
+                }
+                
+                horses.push(currentHorse);
+                continue;
+            }
+            
+            if (!currentHorse) continue;
+            
+            // 騎手: [騎手名](/kis_info/...)
+            let kisMatch = line.match(/\[(.*?)\]\(\/kis_info\/\d+\.do\)/);
+            if (kisMatch && !currentHorse.jockey) {
+                currentHorse.jockey = kisMatch[1];
+                let wMatch = line.match(/([☆▲△★]?\d+\.\d+)$/);
+                if(wMatch) currentHorse.weight = wMatch[1];
+                continue;
+            }
+            
+            // オッズ
+            let oddsMatch = line.match(/^(\d+\.\d+)\(\d+人\)$/);
+            if (oddsMatch && !currentHorse.odds) {
+                currentHorse.odds = oddsMatch[1];
+                continue;
+            }
+            let pureNumMatch = line.match(/^(\d+\.\d+)$/);
+            if (pureNumMatch && !currentHorse.odds && parseFloat(pureNumMatch[1]) > 0) {
+                currentHorse.odds = pureNumMatch[1];
+            }
+            
+            // 過去走
+            let raceHeaderMatch = line.match(/^(\d+着|取消|除外|中止)\s+(.+)/);
+            if (raceHeaderMatch) {
+                pastRaceObj = {
+                    header: raceHeaderMatch[0],
+                    raceName: '',
+                    conditions: '',
+                    horseWeight: '',
+                    time: '',
+                    passing: ''
+                };
+                currentHorse.pastRaces.push(pastRaceObj);
+                continue;
+            }
+            
+            if (pastRaceObj) {
+                if (line.match(/\[(.*?)\]\(\/result/)) {
+                    pastRaceObj.raceName = line.match(/\[(.*?)\]/)[1];
+                } else if (line.match(/\d+頭\s+\d+番/)) {
+                    pastRaceObj.conditions = line;
+                } else if (line.match(/^\d+kg\s/)) {
+                    pastRaceObj.horseWeight = line;
+                } else if (line.match(/^\d+:\d+\.\d+/) || line.match(/^\d+\.\d+\s+\(/)) {
+                    pastRaceObj.time = line;
+                } else if (line.match(/^[\d\s]+$/) && line.includes(' ')) {
+                    pastRaceObj.passing = line;
+                }
+            }
+        }
+        
+        // 重複排除とソート
+        const uniqueHorsesMap = new Map();
+        horses.forEach(h => {
+            if(!uniqueHorsesMap.has(h.num)) {
+                uniqueHorsesMap.set(h.num, h);
+            } else {
+                let existing = uniqueHorsesMap.get(h.num);
+                if(existing.pastRaces.length === 0 && h.pastRaces.length > 0) existing.pastRaces = h.pastRaces;
+                if(!existing.odds && h.odds) existing.odds = h.odds;
+            }
+        });
+        
+        return Array.from(uniqueHorsesMap.values()).sort((a,b) => a.num - b.num);
+    }
+
+    // パース実行とレンダリング
+    function executeParse() {
+        const text = document.getElementById('race-data-input').value;
+        if (!text.trim()) {
+            alert('テキストを貼り付けてください。');
+            return;
+        }
+
+        const horseData = parseNankanText(text);
+        if (horseData.length === 0) {
+            alert('馬データを抽出できませんでした。nankankeiba.comの出走表全体をコピーしてください。');
+            return;
+        }
+
+        renderTable(horseData);
+        renderPickups(horseData);
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('horse-list');
+        tbody.innerHTML = '';
+
+        data.forEach(horse => {
+            const tr = document.createElement('tr');
+            tr.className = 'horse-row';
+
+            // 枠、馬番、印
+            let html = `
+                <td><div class="waku-box" data-waku="${horse.waku}">${horse.waku}</div></td>
+                <td><div class="horse-num">${horse.num}</div></td>
+                <td>
+                    <select class="shirushi-select mark-無" onchange="changeMark(this)">
+                        <option value="無" selected>無</option>
+                        <option value="◎">◎</option>
+                        <option value="〇">〇</option>
+                        <option value="▲">▲</option>
+                        <option value="△">△</option>
+                        <option value="注">注</option>
+                        <option value="✕">✕</option>
+                        <option value="消">消</option>
+                    </select>
+                </td>
+            `;
+
+            // 馬名と騎手・オッズ
+            html += `
+                <td>
+                    <div class="horse-name">${horse.name}</div>
+                    <div class="horse-sub">${horse.seirei}</div>
+                    <div class="jockey">${horse.jockey} ${horse.weight}</div>
+                    <div class="odds">${horse.odds ? horse.odds + '倍' : '---'}</div>
+                </td>
+            `;
+
+            // 過去走（最大3つまで）
+            for (let i = 0; i < 3; i++) {
+                const pr = horse.pastRaces[i];
+                if (pr) {
+                    html += `
+                        <td class="past-race">
+                            <div class="race-header">${pr.header}</div>
+                            <div class="race-name">${pr.raceName}</div>
+                            <div>${pr.conditions}</div>
+                            <div>${pr.horseWeight}</div>
+                            <div class="time-display">${pr.time}</div>
+                            <div class="passing">${pr.passing}</div>
+                        </td>
+                    `;
+                } else {
+                    html += `<td></td>`;
+                }
+            }
+
+            tr.innerHTML = html;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderPickups(data) {
+        const pickupJockeys = ["笹川翼", "野畑凌"];
+        const pickupList = document.getElementById('pickup-list');
+        pickupList.innerHTML = '';
+        
+        let found = false;
+        data.forEach(horse => {
+            if (pickupJockeys.includes(horse.jockey)) {
+                found = true;
+                const div = document.createElement('div');
+                div.className = 'pickup-horse';
+                div.innerHTML = `【${horse.num}番】 ${horse.name} <span style="color:#d32f2f; font-size:0.8rem;">(${horse.jockey})</span>`;
+                pickupList.appendChild(div);
+            }
+        });
+
+        const container = document.getElementById('pickup-container');
+        if (found) {
+            container.classList.add('active');
+        } else {
+            container.classList.remove('active');
+        }
+    }
+</script>
+
+</body>
+</html>
