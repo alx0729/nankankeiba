@@ -736,15 +736,14 @@
             tbody.appendChild(tr);
             
             const pickupJockeys = ["笹川翼", "野畑凌"];
-            const isOshi = pickupJockeys.includes(horse.jockey);
-            if (isOshi || isPassRecent3 || isCloseRecent3 || isTransfer) {
+            if (pickupJockeys.includes(horse.jockey)) {
                 let status = "none";
                 if(isPassRecent3) status = "clear";
                 else if(isCloseRecent3) status = "close";
                 else if(isTransfer) status = "transfer";
                 
                 pickupHorses.push({
-                    umaban: horse.num, name: horse.name, jockey: horse.jockey, isOshi: isOshi, status: status
+                    umaban: horse.num, name: horse.name, jockey: horse.jockey, isOshi: true, status: status
                 });
             }
         });
