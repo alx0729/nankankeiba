@@ -72,8 +72,22 @@
             border: 1px solid #aaa;
             border-radius: 4px;
         }
+        .controls-area {
+            background: #fff;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+        }
+        .controls-area select {
+            padding: 8px 4px;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            border: 1px solid #aaa;
+            background: #f9f9f9;
+        }
         .btn-parse {
-            width: 100%;
             background: #222;
             color: #fff;
             padding: 12px;
@@ -84,6 +98,17 @@
             cursor: pointer;
         }
         .btn-parse:active { background: #000; }
+        .btn-reset {
+            background: #9e9e9e;
+            color: #fff;
+            padding: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-reset:active { background: #757575; }
 
         /* ピックアップエリア */
         .pickup-area {
@@ -238,7 +263,46 @@
     
     <div class="input-area">
         <textarea id="race-data-input" placeholder="nankankeiba.comの出走表ページ全体をコピーしてここにペースト..."></textarea>
-        <button class="btn-parse" onclick="executeParse()">馬柱を生成する</button>
+        
+        <div class="controls-area">
+            <div style="font-weight:bold; margin-bottom:5px; color:#555;">⚙️ 条件の手動設定 (自動判定が間違っている場合)</div>
+            <div style="display:flex; justify-content:space-between; gap:5px;">
+                <select id="manual-track-select" onchange="updateClassOptions()" style="width:30%;">
+                    <option value="auto">競馬場: 自動</option>
+                    <option value="大井">大井</option>
+                    <option value="船橋">船橋</option>
+                    <option value="川崎">川崎</option>
+                    <option value="浦和">浦和</option>
+                </select>
+                <select id="manual-distance-select" style="width:30%;">
+                    <option value="auto">距離: 自動</option>
+                    <option value="800">800m</option>
+                    <option value="900">900m</option>
+                    <option value="1000">1000m</option>
+                    <option value="1200">1200m</option>
+                    <option value="1300">1300m</option>
+                    <option value="1400">1400m</option>
+                    <option value="1500">1500m</option>
+                    <option value="1600">1600m</option>
+                    <option value="1650">1650m</option>
+                    <option value="1700">1700m</option>
+                    <option value="1800">1800m</option>
+                    <option value="2000">2000m</option>
+                    <option value="2100">2100m</option>
+                    <option value="2200">2200m</option>
+                    <option value="2400">2400m</option>
+                    <option value="2600">2600m</option>
+                </select>
+                <select id="manual-class-select" style="width:38%;">
+                    <option value="auto">クラス: 自動</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+            <button class="btn-parse" onclick="executeParse()" style="flex:3;">馬柱を生成する</button>
+            <button class="btn-reset" onclick="resetAll()" style="flex:1;">クリア</button>
+        </div>
     </div>
 
     <!-- ピックアップ（推し騎手等） -->
@@ -276,6 +340,7 @@
         if (localStorage.getItem('lumina_auth_passed_sp') === 'true') {
             unlockApp();
         }
+        updateClassOptions(); // 初期のクラス選択肢をセット
     });
 
     function checkAuth() {
@@ -291,6 +356,23 @@
     function unlockApp() {
         document.getElementById('auth-modal').classList.add('hidden');
         document.querySelector('.container').style.display = 'block';
+    }
+
+    // すべてクリア処理
+    function resetAll() {
+        if (!confirm("入力されたデータや生成された馬柱をすべてリセットしますか？")) return;
+        
+        document.getElementById('race-data-input').value = '';
+        document.getElementById('manual-track-select').value = 'auto';
+        document.getElementById('manual-distance-select').value = 'auto';
+        document.getElementById('manual-class-select').value = 'auto';
+        
+        document.getElementById('race-info-title').innerText = '';
+        document.getElementById('horse-list').innerHTML = '<tr><td colspan="7" style="padding: 20px; color: #666;">データを貼り付けて「生成」を押してください。</td></tr>';
+        document.getElementById('pickup-list').innerHTML = '';
+        document.getElementById('pickup-container').classList.remove('active');
+        
+        updateClassOptions();
     }
 
     // 印の変更
@@ -347,6 +429,47 @@
         }
     };
 
+    function updateClassOptions() {
+        const track = document.getElementById('manual-track-select').value;
+        const classSelect = document.getElementById('manual-class-select');
+        const currentVal = classSelect.value;
+        
+        classSelect.innerHTML = '<option value="auto">クラス: 自動</option>';
+        
+        let classes = [];
+        const order = ["Jpn1", "Jpn2", "Jpn3", "重賞", "OP", "A1", "A2", "B1", "B2", "B3", "C1", "C2", "C3"];
+        
+        if (track === "auto") {
+            classes = [...order];
+        } else {
+            const times = STANDARD_TIMES[track];
+            if (times) {
+                let tempSet = new Set();
+                for (let dist in times) {
+                    for (let c in times[dist]) { tempSet.add(c); }
+                }
+                classes = Array.from(tempSet).sort((a, b) => {
+                    const idxA = order.indexOf(a) !== -1 ? order.indexOf(a) : 999;
+                    const idxB = order.indexOf(b) !== -1 ? order.indexOf(b) : 999;
+                    return idxA - idxB;
+                });
+            }
+        }
+        
+        classes.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.innerText = c;
+            classSelect.appendChild(opt);
+        });
+        
+        if (classes.includes(currentVal)) {
+            classSelect.value = currentVal;
+        } else if (currentVal !== "auto") {
+            classSelect.value = "auto";
+        }
+    }
+
     function timeToSeconds(timeStr) {
         if (!timeStr) return 9999;
         const match = timeStr.match(/(?:(\d+)[:分])?(\d+(?:\.\d+)?)/);
@@ -391,9 +514,8 @@
     // --- 南関テキストのパースロジック ---
     function parseNankanText(text) {
         const lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
-        const horsesMap = new Map(); // 重複排除のため馬番をキーにする
+        const horsesMap = new Map();
         
-        // テキスト後半の「前走」等の行以降を対象にしてノイズを減らす
         let startIndex = lines.findIndex(l => l.includes('前走') || l.includes('前々走'));
         if (startIndex < 0) startIndex = 0;
 
@@ -404,21 +526,18 @@
         for (let i = startIndex; i < lines.length; i++) {
             let line = lines[i];
             
-            // 馬名の取得: [馬名](/uma_info/...)
             let umaMatch = line.match(/\[(.*?)\]\(\/uma_info\/\d+\.do\)/);
             if (umaMatch) {
                 let umaName = umaMatch[1];
                 let umaban = 99;
                 let wakuban = 99;
                 
-                // 確実に「馬名の2行前が馬番、3行前が枠番」という構造を利用
                 if (i >= 2 && lines[i-2].match(/^\d+$/)) {
                     umaban = parseInt(lines[i-2]);
                     if (i >= 3 && lines[i-3].match(/^\d+$/)) {
                         wakuban = parseInt(lines[i-3]);
                     }
                 } else {
-                    // もしダメなら近辺の数字を探すフォールバック
                     for(let j = i - 1; j >= Math.max(startIndex, i - 5); j--) {
                         if (lines[j].match(/^\d+$/)) {
                             umaban = parseInt(lines[j]);
@@ -445,7 +564,6 @@
                     currentHorse = horsesMap.get(umaban);
                 }
                 
-                // 下を読んで性齢を取得
                 if (i+1 < lines.length && lines[i+1].match(/牝|牡|セ/)) {
                     currentHorse.seirei = lines[i+1];
                 }
@@ -454,7 +572,6 @@
             
             if (!currentHorse) continue;
             
-            // 騎手: [騎手名](/kis_info/...)
             let kisMatch = line.match(/\[(.*?)\]\(\/kis_info\/\d+\.do\)/);
             if (kisMatch && !currentHorse.jockey) {
                 currentHorse.jockey = kisMatch[1];
@@ -463,7 +580,6 @@
                 continue;
             }
             
-            // オッズ
             let oddsMatch = line.match(/^(\d+\.\d+)\(\d+人\)$/);
             if (oddsMatch && !currentHorse.odds) {
                 currentHorse.odds = oddsMatch[1];
@@ -474,7 +590,6 @@
                 currentHorse.odds = pureNumMatch[1];
             }
             
-            // 過去走（\d+着 または 取消）
             let raceHeaderMatch = line.match(/^(\d+着|取消|除外|中止)\s+(.+)/);
             if (raceHeaderMatch) {
                 pastRaceObj = {
@@ -504,7 +619,6 @@
             }
         }
         
-        // 馬番順にソート（99の馬は無視か最後に回す）
         return Array.from(horsesMap.values()).filter(h => h.num !== 99).sort((a,b) => a.num - b.num);
     }
 
@@ -521,6 +635,16 @@
 
         // レース条件の自動判定
         const conditions = detectRaceConditions(text);
+        
+        // 手動上書きの適用
+        const mTrack = document.getElementById('manual-track-select').value;
+        const mDist = document.getElementById('manual-distance-select').value;
+        const mClass = document.getElementById('manual-class-select').value;
+        
+        if (mTrack !== "auto") conditions.track = mTrack;
+        if (mDist !== "auto") conditions.distance = mDist;
+        if (mClass !== "auto") conditions.raceClass = mClass;
+
         document.getElementById('race-info-title').innerText = `🏇 ${conditions.track} ${conditions.distance}m / ${conditions.raceClass}クラス基準`;
 
         renderTable(horseData, conditions);
@@ -547,7 +671,6 @@
                     let diffHtml = "";
                     let babaBadge = "";
                     
-                    // 例: 6着 大井26.4.30 稍内ダ 1600 から、過去の「場所」「距離」を推測
                     let pastTrack = null;
                     const tracks = ["大井", "船橋", "川崎", "浦和"];
                     for (let t of tracks) { if (pr.header.includes(t)) { pastTrack = t; break; } }
@@ -561,11 +684,10 @@
                     
                     const distMatch = pr.header.match(/(\d{3,4})$/);
                     
-                    // タイムの比較
                     if (pastTrack && distMatch && pr.time) {
                         const pastDist = distMatch[1];
                         const sec = timeToSeconds(pr.time);
-                        // 現在の「要求クラス」での、過去の「競馬場・距離」の基準タイムを呼び出す
+                        // 手動設定が反映された「要求クラス」の基準タイムを呼び出す
                         const stSec = getStandardTime(pastTrack, pastDist, conditions.raceClass);
                         
                         if (stSec) {
@@ -598,7 +720,6 @@
                 }
             }
 
-            // ハイライト付与
             let highlightClass = "";
             if (isPassRecent3) {
                 if (passedBabas.size >= 2) highlightClass = " highlighted-strong";
@@ -606,7 +727,6 @@
             }
             tr.className = 'horse-row' + highlightClass;
 
-            // 枠、馬番、印
             let html = `
                 <td><div class="waku-box" data-waku="${horse.waku}">${horse.waku}</div></td>
                 <td><div class="horse-num">${horse.num}</div></td>
@@ -624,7 +744,6 @@
                 </td>
             `;
 
-            // 馬名と騎手・オッズ
             html += `
                 <td>
                     <div class="horse-name">${horse.name}</div>
@@ -637,7 +756,6 @@
             tr.innerHTML = html + pastHtml;
             tbody.appendChild(tr);
             
-            // ピックアップ判定（笹川・野畑、またはタイムクリア）
             const pickupJockeys = ["笹川翼", "野畑凌"];
             const isOshi = pickupJockeys.includes(horse.jockey);
             if (isOshi || isPassRecent3 || isCloseRecent3) {
