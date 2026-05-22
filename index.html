@@ -933,6 +933,7 @@
                 let layoffText = "";
                 let isCloseRecent3 = false;
                 let currentJockeyPlain = "";
+                let pastCornerPositions = [];
                 
                 if (horse[nameKey]) {
                     const nameCell = horse[nameKey];
@@ -1156,6 +1157,16 @@
                         let posText = "";
                         if (posMatch) {
                             posText = `${posMatch[1]} ${pastJockeyHtml}<br>${posMatch[2]}`;
+                            
+                            // 脚質判定のために最初のコーナー通過順位を抽出
+                            const kIdx = pastKeys.indexOf(k);
+                            if (kIdx !== -1 && kIdx < 3) {
+                                const cornerAndAgari = posMatch[2].split(/\s*\(/); 
+                                if (cornerAndAgari[0]) {
+                                    const firstCorner = parseInt(cornerAndAgari[0].split('-')[0], 10);
+                                    if (!isNaN(firstCorner)) pastCornerPositions.push(firstCorner);
+                                }
+                            }
                         } else {
                             const simplePosMatch = zensoPlainCell.match(/(\d+頭\s+\d+番\s+\d+人)/);
                             if (simplePosMatch) posText = `${simplePosMatch[1]} ${pastJockeyHtml}`;
@@ -1203,6 +1214,21 @@
                         highlightClass = " highlighted-normal"; // 単一馬場でクリア（青）
                     }
                 }
+                
+                // 脚質判定
+                let runningStyleHtml = "";
+                if (pastCornerPositions.length > 0) {
+                    const avgPos = pastCornerPositions.reduce((sum, val) => sum + val, 0) / pastCornerPositions.length;
+                    if (avgPos <= 2.0) {
+                        runningStyleHtml = `<span style="display:inline-block; font-size:0.75rem; font-weight:bold; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle; background:#fce4ec; color:#c2185b; border:1px solid #f48fb1;">【逃げ】</span>`;
+                    } else if (avgPos <= 5.0) {
+                        runningStyleHtml = `<span style="display:inline-block; font-size:0.75rem; font-weight:bold; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle; background:#e1f5fe; color:#0277bd; border:1px solid #81d4fa;">【先行】</span>`;
+                    } else if (avgPos <= 8.5) {
+                        runningStyleHtml = `<span style="display:inline-block; font-size:0.75rem; font-weight:bold; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle; background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7;">【差し】</span>`;
+                    } else {
+                        runningStyleHtml = `<span style="display:inline-block; font-size:0.75rem; font-weight:bold; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle; background:#f3e5f5; color:#7b1fa2; border:1px solid #ce93d8;">【追込】</span>`;
+                    }
+                }
 
                 const marksOptionsHtml = ["無", "◎", "〇", "▲", "△", "✕", "消", "注"].map(m => 
                     `<option value="${m}">${m === "無" ? "－" : m}</option>`
@@ -1222,7 +1248,7 @@
                         <select class="shirushi-select mark-無" data-mark="無" onchange="changeMark(this)">${marksOptionsHtml}</select>
                     </td>
                     <td>
-                        <div class="horse-name" contenteditable="true" spellcheck="false">${name}${transferHtml}${layoffHtml}${scratchedHtml}</div>
+                        <div class="horse-name" contenteditable="true" spellcheck="false">${name}${runningStyleHtml}${transferHtml}${layoffHtml}${scratchedHtml}</div>
                         <div class="odds" contenteditable="true" spellcheck="false">オッズ: ${odds}</div>
                         <div class="horse-sub" contenteditable="true" spellcheck="false">${kishuHtml}</div>
                     </td>

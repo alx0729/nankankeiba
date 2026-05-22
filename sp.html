@@ -612,6 +612,7 @@
             let isPassRecent3 = false;
             let isCloseRecent3 = false;
             let passedBabas = new Set();
+            let pastCornerPositions = [];
             
             let isLayoff = false;
             let isTransfer = false;
@@ -663,6 +664,11 @@
                         babaBadge = `<span class="baba-badge baba-${pastBaba}">${pastBaba}</span>`;
                     }
                     
+                    if (pr.passing) {
+                        const firstCorner = parseInt(pr.passing.trim().split(/\s+/)[0], 10);
+                        if (!isNaN(firstCorner)) pastCornerPositions.push(firstCorner);
+                    }
+                    
                     const distMatch = pr.header.match(/(\d{3,4})$/);
                     if (pastTrack && distMatch && pr.time) {
                         const pastDist = distMatch[1];
@@ -709,6 +715,21 @@
                 else highlightClass = " highlighted-normal";
             }
             tr.className = 'horse-row' + highlightClass;
+            
+            // 脚質判定
+            let runningStyleHtml = "";
+            if (pastCornerPositions.length > 0) {
+                const avgPos = pastCornerPositions.reduce((sum, val) => sum + val, 0) / pastCornerPositions.length;
+                if (avgPos <= 2.0) {
+                    runningStyleHtml = `<span style="display:inline-block; font-size:0.75rem; font-weight:bold; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle; background:#fce4ec; color:#c2185b; border:1px solid #f48fb1;">【逃げ】</span>`;
+                } else if (avgPos <= 5.0) {
+                    runningStyleHtml = `<span style="display:inline-block; font-size:0.75rem; font-weight:bold; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle; background:#e1f5fe; color:#0277bd; border:1px solid #81d4fa;">【先行】</span>`;
+                } else if (avgPos <= 8.5) {
+                    runningStyleHtml = `<span style="display:inline-block; font-size:0.75rem; font-weight:bold; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle; background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7;">【差し】</span>`;
+                } else {
+                    runningStyleHtml = `<span style="display:inline-block; font-size:0.75rem; font-weight:bold; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle; background:#f3e5f5; color:#7b1fa2; border:1px solid #ce93d8;">【追込】</span>`;
+                }
+            }
 
             const marksHtml = ["無", "◎", "〇", "▲", "△", "✕", "消", "注"].map(m => `<option value="${m}">${m === "無" ? "－" : m}</option>`).join('');
 
@@ -725,7 +746,7 @@
 
             html += `
                 <td>
-                    <div class="horse-name">${horse.name}${transferHtml}${layoffHtml}</div>
+                    <div class="horse-name">${horse.name}${runningStyleHtml}${transferHtml}${layoffHtml}</div>
                     <div class="horse-sub">${horse.seirei}</div>
                     <div class="jockey">${norikawariHtml}${horse.jockey} <span style="color:#444;">${horse.weight}</span></div>
                     <div class="odds">${horse.odds ? horse.odds + '倍' : '---'}</div>
