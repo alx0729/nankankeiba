@@ -36,7 +36,7 @@
             box-sizing: border-box;
             border-radius: 4px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            display: none; /* 初期非表示 (パスワードロック) */
+            display: none; /* 初期非表示 */
         }
 
         h1 {
@@ -45,6 +45,14 @@
             font-weight: 900;
             margin: 0 0 5px 0;
             text-align: center;
+        }
+        
+        .race-info-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #1565c0;
         }
 
         .input-area {
@@ -105,6 +113,8 @@
             font-size: 0.9rem;
             font-weight: bold;
         }
+        .badge-clear { color: #e63946; border: 1px solid #e63946; font-size: 0.8rem; padding: 1px 4px; border-radius: 3px; margin-left: 5px; }
+        .badge-close { color: #f57c00; border: 1px dashed #f57c00; font-size: 0.8rem; padding: 1px 4px; border-radius: 3px; margin-left: 5px; }
 
         /* テーブル (スマホ最適化) */
         .table-responsive {
@@ -115,7 +125,7 @@
             margin-bottom: 20px;
         }
         table {
-            width: 800px; /* 横スクロールを前提とした最小幅 */
+            width: 800px;
             border-collapse: collapse;
             table-layout: fixed;
         }
@@ -142,6 +152,10 @@
 
         tr.horse-row:active { background: #fdf8e6; }
         tr.dimmed-row { opacity: 0.35; filter: grayscale(100%); }
+        
+        /* ハイライト色 */
+        tr.horse-row.highlighted-normal { background: #e3f2fd; border-left: 4px solid #1976d2; }
+        tr.horse-row.highlighted-strong { background: #ffebee; border-left: 4px solid #d32f2f; }
 
         .waku-box {
             display: inline-flex; align-items: center; justify-content: center;
@@ -177,7 +191,11 @@
         .race-header { color: #333; border-bottom: 1px dotted #999; margin-bottom: 2px; padding-bottom: 2px; font-weight: bold; }
         .race-name { font-size: 0.7rem; color: #0056b3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; }
         .time-display { font-weight: 900; margin-top: 2px; font-size: 0.8rem; }
+        .diff-minus { color: #e63946; font-weight: 900; background: #ffebee; padding: 0 2px; border-radius: 2px; }
+        .diff-close { color: #f57c00; font-weight: 900; background: #fff3e0; padding: 0 2px; border-radius: 2px; border: 1px dashed #f57c00; }
+        .diff-plus { color: #555; font-weight: normal; }
         .passing { color: #555; font-size: 0.7rem; }
+        .baba-badge { display: inline-block; padding: 0 2px; border-radius: 2px; font-size: 0.7rem; font-weight: bold; border: 1px solid #aaa; margin: 0 2px; }
 
         /* パスワードロック画面 */
         #auth-modal {
@@ -216,6 +234,7 @@
 
 <div class="container">
     <h1>📱 南関スマホ馬柱解析</h1>
+    <div id="race-info-title" class="race-info-title"></div>
     
     <div class="input-area">
         <textarea id="race-data-input" placeholder="nankankeiba.comの出走表ページ全体をコピーしてここにペースト..."></textarea>
@@ -224,7 +243,7 @@
 
     <!-- ピックアップ（推し騎手等） -->
     <div id="pickup-container" class="pickup-area">
-        <div class="pickup-title">💡 ピックアップ騎手 (笹川・野畑)</div>
+        <div class="pickup-title">💡 ピックアップ馬</div>
         <div id="pickup-list"></div>
     </div>
 
@@ -286,24 +305,97 @@
         }
     }
 
-    // 南関テキストのパースロジック
+    // --- 基準タイムデータベース ---
+    const STANDARD_TIMES = {
+        "大井": {
+            "1000": {"C2": "1:00.2", "C1": "1:00.8", "B2": "1:00.1", "B1": "1:00.1", "OP": "57.9"},
+            "1200": {"C3": "1:15.1", "C2": "1:14.4", "C1": "1:13.8", "B3": "1:13.2", "B2": "1:13.0", "B1": "1:12.9", "A2": "1:12.7", "OP": "1:12.4", "重賞": "1:11.7", "Jpn2": "1:11.1", "Jpn1": "1:12.1"},
+            "1400": {"C3": "1:29.8", "C2": "1:28.7", "C1": "1:28.1", "B3": "1:27.3", "B2": "1:27.0", "B1": "1:27.2", "A2": "1:26.3", "OP": "1:25.8", "重賞": "1:25.0"},
+            "1600": {"C3": "1:44.5", "C2": "1:43.7", "C1": "1:42.8", "B3": "1:42.1", "B2": "1:41.6", "B1": "1:41.6", "A2": "1:41.3", "OP": "1:41.2", "重賞": "1:41.0"},
+            "1700": {"C3": "1:53.0", "C2": "1:51.1", "C1": "1:48.6"},
+            "1800": {"C3": "1:59.0", "C2": "1:57.6", "C1": "1:56.2", "B3": "1:55.8", "B2": "1:55.2", "B1": "1:55.0", "A2": "1:54.4", "OP": "1:55.6", "重賞": "1:52.9", "Jpn3": "1:54.0", "Jpn2": "1:53.0", "Jpn1": "1:53.3"},
+            "2000": {"C3": "2:12.9", "C2": "2:10.9", "C1": "2:10.7", "B3": "2:09.1", "B2": "2:10.1", "B1": "2:08.8", "A2": "2:07.4", "OP": "2:10.8", "重賞": "2:04.9", "Jpn1": "2:04.4"},
+            "2400": {"OP": "2:36.5", "重賞": "2:37.1"},
+            "2600": {"OP": "2:52.8", "重賞": "2:49.2"},
+            "1650": {"C2": "1:45.7", "C1": "1:46.5", "B3": "1:45.5", "B2": "1:45.7", "B1": "1:46.1"}
+        },
+        "船橋": {
+            "1000": {"C3": "1:03.0", "C2": "1:02.4", "C1": "1:01.8", "B3": "1:01.2", "B2": "1:01.1", "B1": "1:00.3", "A2": "1:00.4", "OP": "1:00.2", "重賞": "59.7"},
+            "1200": {"C3": "1:17.0", "C2": "1:16.0", "C1": "1:15.4", "B3": "1:14.7", "B2": "1:14.6", "B1": "1:14.3", "A2": "1:14.0", "OP": "1:13.5"},
+            "1500": {"C3": "1:39.7", "C2": "1:38.5", "C1": "1:37.8", "B3": "1:36.9", "B2": "1:38.3", "B1": "1:36.5"},
+            "1600": {"C3": "1:46.6", "C2": "1:44.8", "C1": "1:44.2", "B3": "1:43.8", "B2": "1:43.9", "B1": "1:43.2", "A2": "1:42.7", "OP": "1:40.9", "重賞": "1:42.2", "Jpn3": "1:42.1", "Jpn2": "1:39.3"},
+            "1700": {"C3": "1:54.2", "B3": "1:51.6", "B2": "1:49.5", "B1": "1:49.8", "A2": "1:49.9", "OP": "1:48.6"},
+            "1800": {"C3": "2:00.7", "C2": "1:59.2", "C1": "1:57.8", "B3": "1:56.9", "B2": "1:56.3", "B1": "1:55.0", "A2": "1:55.9", "OP": "1:55.5", "重賞": "1:54.1", "Jpn3": "1:51.9", "Jpn2": "1:52.6"},
+            "2200": {"C2": "2:30.8", "C1": "2:30.1", "B3": "2:27.4", "B2": "2:28.8", "B1": "2:27.4", "A2": "2:26.1", "OP": "2:27.2"},
+            "2400": {"Jpn2": "2:37.6"}
+        },
+        "川崎": {
+            "900": {"C3": "56.0", "C2": "55.6", "C1": "55.1", "B3": "54.6", "B2": "54.4", "B1": "54.1", "A2": "54.0", "OP": "53.8", "重賞": "53.4"},
+            "1400": {"C3": "1:33.3", "C2": "1:32.4", "C1": "1:31.6", "B3": "1:30.8", "B2": "1:30.5"},
+            "1500": {"C3": "1:39.3", "C2": "1:38.3", "C1": "1:37.5", "B3": "1:37.0", "B2": "1:36.6", "B1": "1:36.1", "A2": "1:35.4", "OP": "1:34.6"},
+            "1600": {"C3": "1:45.7", "C2": "1:46.6", "C1": "1:45.3", "B3": "1:45.0", "B2": "1:44.4", "B1": "1:44.2", "A2": "1:43.3", "OP": "1:42.9", "重賞": "1:42.3", "Jpn3": "1:41.3"},
+            "2000": {"C3": "2:17.6", "C2": "2:16.2", "C1": "2:15.5", "B3": "2:14.9", "B2": "2:13.8", "B1": "2:13.9", "A2": "2:11.8", "OP": "2:11.7"},
+            "2100": {"A2": "2:22.3", "OP": "2:19.5", "重賞": "2:17.2", "Jpn2": "2:17.5", "Jpn1": "2:15.7"}
+        },
+        "浦和": {
+            "800": {"C3": "48.7", "C2": "48.1", "C1": "47.7", "B3": "47.3", "B2": "47.1"},
+            "1300": {"C3": "1:23.1"},
+            "1400": {"C3": "1:31.6", "C2": "1:30.6", "C1": "1:29.6", "B3": "1:29.1", "B2": "1:28.7", "B1": "1:28.2", "A2": "1:28.0", "OP": "1:27.4", "重賞": "1:26.6", "Jpn3": "1:25.8", "Jpn2": "1:25.3"},
+            "1500": {"C3": "1:38.7", "C2": "1:37.7", "C1": "1:37.1", "B3": "1:36.3", "B2": "1:36.0", "B1": "1:35.6", "A2": "1:35.0", "重賞": "1:36.7"},
+            "1600": {"C1": "1:44.0"},
+            "2000": {"C3": "2:15.2", "C2": "2:14.2", "C1": "2:12.3", "B3": "2:11.9", "B2": "2:10.8", "A2": "2:11.1", "OP": "2:08.1", "重賞": "2:08.6", "Jpn2": "2:06.9"}
+        }
+    };
+
+    function timeToSeconds(timeStr) {
+        if (!timeStr) return 9999;
+        const match = timeStr.match(/(?:(\d+)[:分])?(\d+(?:\.\d+)?)/);
+        if (!match) return parseFloat(timeStr) || 9999;
+        let sec = parseFloat(match[2]);
+        if (match[1]) sec += parseInt(match[1]) * 60;
+        return sec;
+    }
+
+    function getStandardTime(track, distance, raceClass) {
+        if (STANDARD_TIMES[track] && STANDARD_TIMES[track][distance] && STANDARD_TIMES[track][distance][raceClass]) {
+            return timeToSeconds(STANDARD_TIMES[track][distance][raceClass]);
+        }
+        return null;
+    }
+
+    // 今日のレース条件の自動抽出
+    function detectRaceConditions(text) {
+        let track = "大井";
+        const tracks = ["大井", "船橋", "川崎", "浦和"];
+        let maxScore = 0;
+        for (let t of tracks) {
+            const score = (text.match(new RegExp(t, 'g')) || []).length;
+            if (score > maxScore) { maxScore = score; track = t; }
+        }
+
+        let raceClass = "C1";
+        const classMatch = text.match(/(Jpn1|Jpn2|Jpn3|重賞|OP|A1|A2|A3|A4|A|B1|B2|B3|B|C1|C2|C3|C4|C)(?:[一二三四五六七八九十]*\s*\d+頭|\)|\s)/);
+        if (classMatch) {
+            raceClass = classMatch[1];
+        }
+
+        let distance = "1200";
+        const distMatch = text.match(/(?:ダ|芝|ダート|障)\s*(\d{1,2},?\d{3})m?/);
+        if (distMatch) {
+            distance = distMatch[1].replace(',', '');
+        }
+
+        return { track, raceClass, distance };
+    }
+
+    // --- 南関テキストのパースロジック ---
     function parseNankanText(text) {
         const lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
-        const horses = [];
+        const horsesMap = new Map(); // 重複排除のため馬番をキーにする
         
-        // 前走データがあるブロックの開始位置を探す
-        let startIndex = 0;
-        for (let i = 0; i < lines.length; i++) {
-            if (lines[i].includes('前走') && lines[i+1] && lines[i+1].includes('前々走')) {
-                startIndex = i;
-                break;
-            }
-        }
-        
-        if (startIndex === 0) {
-            startIndex = lines.findIndex(l => l.match(/\[.*\]\(\/uma_info/));
-            if(startIndex < 0) startIndex = 0;
-        }
+        // テキスト後半の「前走」等の行以降を対象にしてノイズを減らす
+        let startIndex = lines.findIndex(l => l.includes('前走') || l.includes('前々走'));
+        if (startIndex < 0) startIndex = 0;
 
         let currentHorse = null;
         let pastRaceObj = null;
@@ -316,36 +408,47 @@
             let umaMatch = line.match(/\[(.*?)\]\(\/uma_info\/\d+\.do\)/);
             if (umaMatch) {
                 let umaName = umaMatch[1];
+                let umaban = 99;
+                let wakuban = 99;
                 
-                currentHorse = {
-                    id: horseCount++,
-                    waku: 99,
-                    num: 99,
-                    name: umaName,
-                    seirei: '',
-                    jockey: '',
-                    weight: '',
-                    odds: '',
-                    pastRaces: []
-                };
-                
-                // 上に遡って枠番・馬番を探す
-                for(let j = i - 1; j >= Math.max(0, i - 10); j--) {
-                    if (lines[j].match(/^\d+$/)) {
-                        currentHorse.num = parseInt(lines[j]);
-                        if (j > 0 && lines[j-1].match(/^\d+$/)) {
-                            currentHorse.waku = parseInt(lines[j-1]);
-                        }
-                        break;
+                // 確実に「馬名の2行前が馬番、3行前が枠番」という構造を利用
+                if (i >= 2 && lines[i-2].match(/^\d+$/)) {
+                    umaban = parseInt(lines[i-2]);
+                    if (i >= 3 && lines[i-3].match(/^\d+$/)) {
+                        wakuban = parseInt(lines[i-3]);
                     }
+                } else {
+                    // もしダメなら近辺の数字を探すフォールバック
+                    for(let j = i - 1; j >= Math.max(startIndex, i - 5); j--) {
+                        if (lines[j].match(/^\d+$/)) {
+                            umaban = parseInt(lines[j]);
+                            if (j > 0 && lines[j-1].match(/^\d+$/)) { wakuban = parseInt(lines[j-1]); }
+                            break;
+                        }
+                    }
+                }
+                
+                if(!horsesMap.has(umaban)) {
+                    currentHorse = {
+                        id: horseCount++,
+                        waku: wakuban,
+                        num: umaban,
+                        name: umaName,
+                        seirei: '',
+                        jockey: '',
+                        weight: '',
+                        odds: '',
+                        pastRaces: []
+                    };
+                    horsesMap.set(umaban, currentHorse);
+                } else {
+                    currentHorse = horsesMap.get(umaban);
                 }
                 
                 // 下を読んで性齢を取得
                 if (i+1 < lines.length && lines[i+1].match(/牝|牡|セ/)) {
                     currentHorse.seirei = lines[i+1];
                 }
-                
-                horses.push(currentHorse);
                 continue;
             }
             
@@ -371,7 +474,7 @@
                 currentHorse.odds = pureNumMatch[1];
             }
             
-            // 過去走
+            // 過去走（\d+着 または 取消）
             let raceHeaderMatch = line.match(/^(\d+着|取消|除外|中止)\s+(.+)/);
             if (raceHeaderMatch) {
                 pastRaceObj = {
@@ -401,28 +504,14 @@
             }
         }
         
-        // 重複排除とソート
-        const uniqueHorsesMap = new Map();
-        horses.forEach(h => {
-            if(!uniqueHorsesMap.has(h.num)) {
-                uniqueHorsesMap.set(h.num, h);
-            } else {
-                let existing = uniqueHorsesMap.get(h.num);
-                if(existing.pastRaces.length === 0 && h.pastRaces.length > 0) existing.pastRaces = h.pastRaces;
-                if(!existing.odds && h.odds) existing.odds = h.odds;
-            }
-        });
-        
-        return Array.from(uniqueHorsesMap.values()).sort((a,b) => a.num - b.num);
+        // 馬番順にソート（99の馬は無視か最後に回す）
+        return Array.from(horsesMap.values()).filter(h => h.num !== 99).sort((a,b) => a.num - b.num);
     }
 
-    // パース実行とレンダリング
+    // --- メイン処理 ---
     function executeParse() {
         const text = document.getElementById('race-data-input').value;
-        if (!text.trim()) {
-            alert('テキストを貼り付けてください。');
-            return;
-        }
+        if (!text.trim()) { alert('テキストを貼り付けてください。'); return; }
 
         const horseData = parseNankanText(text);
         if (horseData.length === 0) {
@@ -430,17 +519,92 @@
             return;
         }
 
-        renderTable(horseData);
-        renderPickups(horseData);
+        // レース条件の自動判定
+        const conditions = detectRaceConditions(text);
+        document.getElementById('race-info-title').innerText = `🏇 ${conditions.track} ${conditions.distance}m / ${conditions.raceClass}クラス基準`;
+
+        renderTable(horseData, conditions);
     }
 
-    function renderTable(data) {
+    function renderTable(data, conditions) {
         const tbody = document.getElementById('horse-list');
         tbody.innerHTML = '';
+        
+        const pickupHorses = []; // ピックアップ情報用配列
 
         data.forEach(horse => {
             const tr = document.createElement('tr');
-            tr.className = 'horse-row';
+            
+            let pastHtml = "";
+            let isPassRecent3 = false;
+            let isCloseRecent3 = false;
+            let passedBabas = new Set();
+            
+            // 過去走（最大3つ）のタイム比較処理
+            for (let i = 0; i < 3; i++) {
+                const pr = horse.pastRaces[i];
+                if (pr) {
+                    let diffHtml = "";
+                    let babaBadge = "";
+                    
+                    // 例: 6着 大井26.4.30 稍内ダ 1600 から、過去の「場所」「距離」を推測
+                    let pastTrack = null;
+                    const tracks = ["大井", "船橋", "川崎", "浦和"];
+                    for (let t of tracks) { if (pr.header.includes(t)) { pastTrack = t; break; } }
+                    
+                    let pastBaba = "";
+                    const babaMatch = pr.header.match(/(良|稍|重|不)/);
+                    if (babaMatch) {
+                        pastBaba = babaMatch[1];
+                        babaBadge = `<span class="baba-badge" style="background:#e0e0e0;">${pastBaba}</span>`;
+                    }
+                    
+                    const distMatch = pr.header.match(/(\d{3,4})$/);
+                    
+                    // タイムの比較
+                    if (pastTrack && distMatch && pr.time) {
+                        const pastDist = distMatch[1];
+                        const sec = timeToSeconds(pr.time);
+                        // 現在の「要求クラス」での、過去の「競馬場・距離」の基準タイムを呼び出す
+                        const stSec = getStandardTime(pastTrack, pastDist, conditions.raceClass);
+                        
+                        if (stSec) {
+                            const diff = (sec - stSec).toFixed(1);
+                            if (diff <= 0) {
+                                diffHtml = `<span class="diff-minus">(${diff})</span>`;
+                                isPassRecent3 = true;
+                                if(pastBaba) passedBabas.add(pastBaba);
+                            } else if (diff <= 0.5) {
+                                diffHtml = `<span class="diff-close">(+${diff}) 惜</span>`;
+                                isCloseRecent3 = true;
+                            } else {
+                                diffHtml = `<span class="diff-plus">(+${diff})</span>`;
+                            }
+                        }
+                    }
+
+                    pastHtml += `
+                        <td class="past-race">
+                            <div class="race-header">${pr.header.substring(0,15)}...</div>
+                            <div class="race-name">${pr.raceName}</div>
+                            <div>${pr.conditions}</div>
+                            <div>${pr.horseWeight}</div>
+                            <div class="time-display">${babaBadge} ${pr.time} ${diffHtml}</div>
+                            <div class="passing">${pr.passing}</div>
+                        </td>
+                    `;
+                } else {
+                    pastHtml += `<td class="past-race"><div style="color:#ccc; text-align:center;">-</div></td>`;
+                }
+            }
+
+            // ハイライト付与
+            let highlightClass = "";
+            if (isPassRecent3) {
+                if (passedBabas.size >= 2) highlightClass = " highlighted-strong";
+                else highlightClass = " highlighted-normal";
+            }
+            tr.className = 'horse-row' + highlightClass;
 
             // 枠、馬番、印
             let html = `
@@ -470,51 +634,45 @@
                 </td>
             `;
 
-            // 過去走（最大3つまで）
-            for (let i = 0; i < 3; i++) {
-                const pr = horse.pastRaces[i];
-                if (pr) {
-                    html += `
-                        <td class="past-race">
-                            <div class="race-header">${pr.header}</div>
-                            <div class="race-name">${pr.raceName}</div>
-                            <div>${pr.conditions}</div>
-                            <div>${pr.horseWeight}</div>
-                            <div class="time-display">${pr.time}</div>
-                            <div class="passing">${pr.passing}</div>
-                        </td>
-                    `;
-                } else {
-                    html += `<td></td>`;
-                }
-            }
-
-            tr.innerHTML = html;
+            tr.innerHTML = html + pastHtml;
             tbody.appendChild(tr);
+            
+            // ピックアップ判定（笹川・野畑、またはタイムクリア）
+            const pickupJockeys = ["笹川翼", "野畑凌"];
+            const isOshi = pickupJockeys.includes(horse.jockey);
+            if (isOshi || isPassRecent3 || isCloseRecent3) {
+                pickupHorses.push({
+                    umaban: horse.num,
+                    name: horse.name,
+                    jockey: horse.jockey,
+                    isOshi: isOshi,
+                    status: isPassRecent3 ? "clear" : (isCloseRecent3 ? "close" : "none")
+                });
+            }
         });
+        
+        renderPickups(pickupHorses);
     }
 
-    function renderPickups(data) {
-        const pickupJockeys = ["笹川翼", "野畑凌"];
+    function renderPickups(pickupHorses) {
         const pickupList = document.getElementById('pickup-list');
         pickupList.innerHTML = '';
         
-        let found = false;
-        data.forEach(horse => {
-            if (pickupJockeys.includes(horse.jockey)) {
-                found = true;
-                const div = document.createElement('div');
-                div.className = 'pickup-horse';
-                div.innerHTML = `【${horse.num}番】 ${horse.name} <span style="color:#d32f2f; font-size:0.8rem;">(${horse.jockey})</span>`;
-                pickupList.appendChild(div);
-            }
-        });
-
-        const container = document.getElementById('pickup-container');
-        if (found) {
-            container.classList.add('active');
+        if (pickupHorses.length > 0) {
+            let pHTML = "";
+            pickupHorses.forEach(h => {
+                let badge = "";
+                if (h.status === "clear") badge = `<span class="badge-clear">足りてる</span>`;
+                else if (h.status === "close") badge = `<span class="badge-close">惜しい</span>`;
+                
+                let oshiBadge = h.isOshi ? `<span style="color:#d32f2f; font-weight:bold;">💡推し</span> ` : "";
+                
+                pHTML += `<div class="pickup-horse">${oshiBadge}【${h.umaban}番】 ${h.name} (${h.jockey}) ${badge}</div>`;
+            });
+            pickupList.innerHTML = pHTML;
+            document.getElementById('pickup-container').classList.add('active');
         } else {
-            container.classList.remove('active');
+            document.getElementById('pickup-container').classList.remove('active');
         }
     }
 </script>
