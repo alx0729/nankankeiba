@@ -492,13 +492,21 @@
             const score = (text.match(new RegExp(t, 'g')) || []).length;
             if (score > maxScore) { maxScore = score; track = t; }
         }
+        
+        let raceNum = "";
+        const numMatch = text.match(/(\d{1,2})R\s+\d{4}年/);
+        if (numMatch) { raceNum = numMatch[1] + "R"; }
+
         let raceClass = "C1";
         const classMatch = text.match(/(Jpn1|Jpn2|Jpn3|重賞|OP|A1|A2|A3|A4|A|B1|B2|B3|B|C1|C2|C3|C4|C)(?:[一二三四五六七八九十]*\s*\d+頭|\)|\s)/);
         if (classMatch) { raceClass = classMatch[1]; }
+        
         let distance = "1200";
-        const distMatch = text.match(/(?:ダ|芝|ダート|障)\s*(\d{1,2},?\d{3})m?/);
+        // ダ1,600m（内）等に対応するため、カンマも許容する柔軟なマッチング
+        const distMatch = text.match(/(?:ダ|芝|ダート|障)[^\d]*(\d{1,2},?\d{3})m?/);
         if (distMatch) { distance = distMatch[1].replace(',', ''); }
-        return { track, raceClass, distance };
+        
+        return { track, raceClass, distance, raceNum };
     }
 
     function parseNankanText(text) {
@@ -587,7 +595,8 @@
         if (mDist !== "auto") conditions.distance = mDist;
         if (mClass !== "auto") conditions.raceClass = mClass;
 
-        document.getElementById('race-info-title').innerText = `🏇 ${conditions.track} ${conditions.distance}m / ${conditions.raceClass}クラス基準`;
+        const raceNumDisplay = conditions.raceNum ? conditions.raceNum + " " : "";
+        document.getElementById('race-info-title').innerText = `🏇 ${raceNumDisplay}${conditions.track} ${conditions.distance}m / ${conditions.raceClass}クラス基準`;
         renderTable(horseData, conditions);
     }
 
