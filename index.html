@@ -1194,7 +1194,9 @@
                 const scratchedHtml = isScratched ? `<span class="scratched-badge" style="display:inline-block; background:#9e9e9e; color:#fff; font-size:0.75rem; font-weight:bold; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle; border:1px solid #757575;">取消/除外</span>` : "";
 
                 let highlightClass = "";
-                if (isPassRecent3) {
+                if (isScratched) {
+                    highlightClass = " dimmed-row"; // 取消・除外なら行全体を暗転
+                } else if (isPassRecent3) {
                     if (passedBabas.size >= 2) {
                         highlightClass = " highlighted-strong"; // 異なる馬場でクリア（赤）
                     } else {
@@ -1228,35 +1230,19 @@
                 `;
                 tbody.appendChild(tr);
 
-                // ピックアップ判定
+                // ピックアップ判定（推し騎手のみ）
                 if (currentJockeyPlain && currentOshi.some(oshi => currentJockeyPlain.includes(oshi) || oshi.includes(currentJockeyPlain))) {
-                    if (isPassRecent3 || isCloseRecent3) {
-                        pickupHorses.push({
-                            umaban: umaban,
-                            name: name,
-                            jockey: currentJockeyPlain,
-                            status: isPassRecent3 ? "clear" : "close"
-                        });
-                    }
-                }
-                
-                // 転入馬の判定 (警戒・見送り用)
-                if (isTransfer) {
+                    let pStatus = "none";
+                    if (isScratched) pStatus = "scratched";
+                    else if (isPassRecent3) pStatus = "clear";
+                    else if (isCloseRecent3) pStatus = "close";
+                    else if (isTransfer) pStatus = "transfer";
+
                     pickupHorses.push({
                         umaban: umaban,
                         name: name,
-                        jockey: currentJockeyPlain || "不明",
-                        status: "transfer"
-                    });
-                }
-                
-                // 取消・除外の判定
-                if (isScratched) {
-                    pickupHorses.push({
-                        umaban: umaban,
-                        name: name,
-                        jockey: currentJockeyPlain || "不明",
-                        status: "scratched"
+                        jockey: currentJockeyPlain,
+                        status: pStatus
                     });
                 }
             });
