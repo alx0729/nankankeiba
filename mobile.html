@@ -2,243 +2,338 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lumina Turf - Mobile App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumina Turf - 新聞風オリジナル馬柱</title>
     <!-- Font for numbers and Japanese -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #0b0f19 0%, #1a233a 100%);
-            --glass-bg: rgba(255, 255, 255, 0.04);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #38bdf8;
-            --accent-glow: 0 0 15px rgba(56, 189, 248, 0.4);
-            --danger: #fb7185;
+            --bg-color: #f4f1eb; /* 新聞紙色 */
+            --panel-bg: #fffefe;
+            --panel-border: #111;
+            --text-main: #111;
+            --text-muted: #444;
             
-            --mark-◎: #f43f5e;
-            --mark-〇: #fb923c;
-            --mark-▲: #cbd5e1;
-            --mark-△: #94a3b8;
-            --mark-✕: #475569;
+            --mark-◎: #e63946;
+            --mark-〇: #e63946;
+            --mark-▲: #111;
+            --mark-△: #111;
+            --mark-✕: #78716c;
         }
 
         body {
             font-family: 'Noto Sans JP', sans-serif;
-            background: var(--bg-gradient);
-            background-attachment: fixed;
+            background: var(--bg-color);
             color: var(--text-main);
             margin: 0;
-            padding: 10px;
+            padding: 20px;
             min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
         }
 
-        .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            border: 2px solid var(--panel-border);
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
-        /* パスワードロック画面 */
-        #auth-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-gradient); z-index: 9999;
-            display: flex; align-items: center; justify-content: center;
-            padding: 20px; box-sizing: border-box;
-        }
-        #auth-modal.hidden { opacity: 0; pointer-events: none; transition: opacity 0.4s; }
-        .auth-box {
-            padding: 30px; text-align: center; width: 100%; max-width: 340px;
-        }
-        .auth-box h2 {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 900; letter-spacing: 2px;
-            background: linear-gradient(to right, #38bdf8, #818cf8);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            margin-top: 0;
-        }
-        .auth-input {
-            width: 100%; padding: 14px; margin: 20px 0;
-            background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border);
-            color: #fff; font-size: 1.2rem; border-radius: 8px; text-align: center;
-            outline: none; transition: border-color 0.2s;
-        }
-        .auth-input:focus { border-color: var(--accent); }
-        .auth-btn {
-            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
-            color: #fff; padding: 14px; font-size: 1.1rem; font-weight: bold;
-            border: none; cursor: pointer; width: 100%; border-radius: 8px;
-            box-shadow: var(--accent-glow); transition: transform 0.1s;
-        }
-        .auth-btn:active { transform: scale(0.98); }
-        #auth-error { color: var(--danger); margin-top: 10px; font-weight: bold; display: none; font-size: 0.9rem; }
+        /* OBS透過・グリーンバック用 */
+        body.obs-mode { background: transparent !important; }
+        body.obs-mode .container { background: rgba(255, 255, 255, 0.95); border: none; box-shadow: none; }
+        body.obs-mode-green { background: #00ff00 !important; }
 
-        .container { display: none; padding-bottom: 20px; }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 3px double var(--panel-border);
+            padding-bottom: 10px;
+        }
 
-        header { text-align: center; margin-bottom: 20px; }
         h1 {
-            font-family: 'Outfit', sans-serif; font-size: 1.8rem; font-weight: 900;
-            margin: 10px 0 5px 0; background: linear-gradient(to right, #e2e8f0, #94a3b8);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            font-family: 'Noto Serif JP', serif;
+            font-size: 2.2rem;
+            font-weight: 900;
+            margin: 0 0 10px 0;
+            color: #111;
         }
-        .race-info { font-size: 0.95rem; color: var(--accent); font-weight: bold; }
 
-        .input-panel { padding: 15px; margin-bottom: 20px; }
-        .input-panel h2 { font-size: 1.1rem; margin-top: 0; color: #e2e8f0; margin-bottom: 10px; font-weight: 900; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px; }
+        .race-info { font-size: 1.1rem; font-weight: bold; }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+        
+        .ctrl-btn {
+            background: #eee;
+            border: 1px solid #aaa;
+            color: #111;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+        .ctrl-btn:hover { background: #ddd; }
+
+        /* 基準タイム入力パネル */
+        .bet-area {
+            margin-bottom: 20px;
+            border: 1px solid #888;
+            background: #fafafa;
+            padding: 15px;
+        }
+        .bet-area h2 { font-size: 1.1rem; margin-top: 0; border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111; }
         .bet-input {
-            width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border);
-            color: #e2e8f0; padding: 10px; border-radius: 8px; font-family: monospace;
-            font-size: 14px; box-sizing: border-box; outline: none; margin-bottom: 10px;
+            width: 100%;
+            background: #fff;
+            border: 1px inset #ccc;
+            color: #111;
+            padding: 8px;
+            font-family: monospace;
+            box-sizing: border-box;
+            resize: vertical;
         }
-        .bet-input:focus { border-color: var(--accent); }
-        select.bet-input { appearance: none; background: rgba(0,0,0,0.5); }
-        .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+
+        /* テーブルスタイル (新聞風) */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid var(--panel-border);
+            margin-bottom: 20px;
+            table-layout: fixed;
+        }
+
+        th, td {
+            border: 1px solid #555;
+            padding: 6px;
+            vertical-align: middle;
+            overflow: hidden;
+            word-wrap: break-word;
+            text-align: center;
+        }
+
+        th {
+            background: #e9e9e9;
+            color: #111;
+            font-size: 0.9rem;
+            font-weight: 900;
+            text-align: center;
+        }
         
-        .main-btn {
-            background: linear-gradient(135deg, #10b981, #059669); color: #fff;
-            padding: 14px; border: none; border-radius: 8px; font-weight: bold;
-            font-size: 1.1rem; width: 100%; cursor: pointer;
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); transition: transform 0.1s;
-        }
-        .main-btn:active { transform: scale(0.98); }
-        #analysis-status { margin-top: 10px; text-align: center; font-size: 0.9rem; color: #f8fafc; font-weight: bold; }
+        th.sortable { cursor: pointer; user-select: none; transition: background 0.1s; }
+        th.sortable:hover { background: #d0d0d0; }
 
-        /* ピックアップエリア */
-        .pickup-area {
-            display: none; padding: 15px; margin-bottom: 20px;
-            border-left: 4px solid #fbbf24;
-        }
-        .pickup-area.active { display: block; animation: fadeIn 0.4s ease; }
-        .pickup-title { font-size: 1rem; font-weight: bold; color: #fbbf24; margin-bottom: 10px; }
-        .pickup-horse {
-            display: inline-block; background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.3); color: #fde68a;
-            padding: 8px 12px; border-radius: 8px; font-size: 0.9rem;
-            margin: 0 8px 8px 0; font-weight: bold;
-        }
-
-        /* 馬カードのレイアウト */
-        .sort-controls { display: flex; gap: 10px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
-        .sort-btn {
-            background: var(--glass-bg); border: 1px solid var(--glass-border);
-            color: #e2e8f0; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem;
-            white-space: nowrap; cursor: pointer; transition: all 0.2s; font-weight: bold;
-        }
-        .sort-btn.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
-
-        .horse-list { display: flex; flex-direction: column; gap: 15px; }
+        tr.horse-row { cursor: pointer; transition: background 0.1s, opacity 0.2s, filter 0.2s; }
+        tr.horse-row:hover { background: #fdf8e6; }
+        tr.horse-row.highlighted-normal { background: #e3f2fd; border-left: 6px solid #1976d2; } /* 基準クリア（単一馬場：青） */
+        tr.horse-row.highlighted-strong { background: #ffebee; border-left: 6px solid #d32f2f; } /* 異なる馬場で基準クリア（赤） */
         
-        .horse-card {
-            position: relative; overflow: hidden; padding: 15px; transition: transform 0.2s, filter 0.2s;
-        }
-        .horse-card.dimmed-card { opacity: 0.4; filter: grayscale(100%); }
-        .horse-card.highlighted-normal { border: 1px solid rgba(56, 189, 248, 0.4); box-shadow: 0 0 15px rgba(56, 189, 248, 0.15); }
-        .horse-card.highlighted-strong { border: 1px solid rgba(251, 113, 133, 0.5); box-shadow: 0 0 15px rgba(251, 113, 133, 0.2); }
+        /* 消しマークをつけた時のスタイル */
+        tr.horse-row.dimmed-row { opacity: 0.35; filter: grayscale(100%); }
+        tr.horse-row.dimmed-row:hover { opacity: 0.6; }
 
-        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
-        .waku-indicator {
-            width: 40px; height: 40px; border-radius: 10px; display: flex;
-            align-items: center; justify-content: center; font-weight: 900;
-            font-size: 1.2rem; font-family: 'Outfit', sans-serif;
-            border: 2px solid rgba(255,255,255,0.2); flex-shrink: 0;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        /* 各セルの幅 */
+        th.w-waku { width: 3%; }
+        th.w-num { width: 3%; }
+        th.w-mark { width: 4%; }
+        th.w-name { width: 15%; }
+        th.w-past { width: 14%; }
+
+        .center { text-align: center; }
+
+        .waku-cell { text-align: center; vertical-align: middle; }
+        .waku-box {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; font-weight: bold; font-size: 1rem; border: 1px solid #111;
         }
         /* 枠色 */
-        .waku-1 { background: #f8fafc; color: #0f172a; }
-        .waku-2 { background: #1e293b; color: #f8fafc; border-color: #475569; }
-        .waku-3 { background: #ef4444; color: #fff; border-color: #fca5a5; }
-        .waku-4 { background: #3b82f6; color: #fff; border-color: #93c5fd; }
-        .waku-5 { background: #eab308; color: #fff; border-color: #fde047; }
-        .waku-6 { background: #22c55e; color: #fff; border-color: #86efac; }
-        .waku-7 { background: #f97316; color: #fff; border-color: #fdba74; }
-        .waku-8 { background: #ec4899; color: #fff; border-color: #f9a8d4; }
-        .waku-99 { background: #475569; color: #fff; }
+        .waku-box[data-waku="1"] { background: #fff; color: #111; }
+        .waku-box[data-waku="2"] { background: #333; color: #fff; }
+        .waku-box[data-waku="3"] { background: #ffebee; color: #d32f2f; }
+        .waku-box[data-waku="4"] { background: #e3f2fd; color: #1976d2; }
+        .waku-box[data-waku="5"] { background: #fffde7; color: #fbc02d; }
+        .waku-box[data-waku="6"] { background: #e8f5e9; color: #388e3c; }
+        .waku-box[data-waku="7"] { background: #fff3e0; color: #f57c00; }
+        .waku-box[data-waku="8"] { background: #fce4ec; color: #c2185b; }
 
-        .horse-num { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.6rem; color: #fff; text-align: center; min-width: 28px;}
+        .horse-num { font-size: 1.2rem; font-weight: 900; text-align: center; vertical-align: middle; }
         
-        .horse-info { flex-grow: 1; }
-        .horse-name { font-size: 1.25rem; font-weight: 900; color: #fff; line-height: 1.2; margin-bottom: 4px; }
-        .horse-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .jockey { color: #818cf8; font-weight: bold; }
-        .odds { font-family: 'Outfit', sans-serif; color: #cbd5e1; font-size: 0.9rem; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;}
-
-        .badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
-        .badge {
-            font-size: 0.75rem; font-weight: bold; padding: 2px 6px; border-radius: 4px;
+        .shirushi-select {
+            appearance: none; -webkit-appearance: none;
+            background: transparent; border: none; font-size: 1.6rem; font-family: 'Noto Serif JP', serif;
+            font-weight: bold; cursor: pointer; width: 100%; height: 100%; text-align: center; text-align-last: center;
+            outline: none; min-height: 40px;
         }
-        .badge-style { background: rgba(255,255,255,0.1); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.2); }
-        .badge-transfer { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
-        .badge-layoff { background: rgba(250, 204, 21, 0.15); color: #facc15; border: 1px solid rgba(250, 204, 21, 0.3); }
-        .badge-scratched { background: #1e293b; color: #94a3b8; border: 1px solid #475569; }
-        .badge-norikawari { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); }
+        .shirushi-select:hover { background: rgba(0,0,0,0.05); }
+        .shirushi-select.mark-◎, .shirushi-select.mark-〇 { color: var(--mark-◎); }
+        .shirushi-select.mark-無 { color: #ccc; font-weight: normal; }
+        .shirushi-select.mark-▲, .shirushi-select.mark-△, .shirushi-select.mark-✕, .shirushi-select.mark-消, .shirushi-select.mark-注 { color: #111; }
 
-        /* 過去走の横スクロール */
-        .past-races { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 12px; scroll-snap-type: x mandatory; }
-        .past-races::-webkit-scrollbar { height: 6px; }
-        .past-races::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        .horse-name { font-size: 1.15rem; font-weight: 900; margin-bottom: 2px; }
+        .horse-sub { font-size: 0.8rem; color: #444; }
+        .odds { font-size: 0.9rem; font-weight: bold; margin-bottom: 2px; }
+
+        /* 過去走の表示スタイル */
+        .past-race { font-size: 0.85rem; line-height: 1.4; }
+        .race-header { color: #333; border-bottom: 1px dotted #999; margin-bottom: 3px; padding-bottom: 2px; font-weight: bold; }
+        .time-display { font-size: 0.95rem; font-weight: 900; display: flex; align-items: baseline; justify-content: center; gap: 4px; flex-wrap: wrap; }
+        .diff-plus { color: #555; font-size: 0.8rem; font-weight: normal; }
+        .diff-minus { color: #e63946; font-size: 0.85rem; font-weight: 900; background: #ffebee; padding: 0 3px; border-radius: 2px; }
+        .diff-close { color: #f57c00; font-size: 0.85rem; font-weight: 900; background: #fff3e0; padding: 0 3px; border-radius: 2px; border: 1px dashed #f57c00; }
         
-        .past-card {
-            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 8px; padding: 10px; min-width: 160px; flex-shrink: 0;
-            scroll-snap-align: start; font-size: 0.85rem; box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);
+        .baba-badge {
+            display: inline-block; padding: 0 4px; border-radius: 2px; font-size: 0.75rem; font-weight: bold; border: 1px solid #aaa; margin: 0 2px;
         }
-        .past-card.gap-line { border-left: 3px dashed #f57c00; }
-        .past-header { color: #94a3b8; font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 6px; padding-bottom: 4px; font-weight: bold;}
-        .past-time { font-family: 'Outfit', sans-serif; font-size: 1.1rem; font-weight: bold; color: #fff; margin: 4px 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;}
-        .diff-minus { color: #f43f5e; background: rgba(244, 63, 94, 0.15); padding: 1px 4px; border-radius: 4px; font-size: 0.85rem; font-weight: bold;}
-        .diff-close { color: #fb923c; border: 1px dashed rgba(251, 146, 60, 0.5); padding: 1px 4px; border-radius: 4px; font-size: 0.85rem; font-weight: bold;}
-        .diff-plus { color: #64748b; font-size: 0.8rem; }
-        .past-pos { color: #cbd5e1; font-size: 0.75rem; line-height: 1.4; margin-top: 4px;}
-        .baba-badge { display: inline-block; padding: 1px 4px; border-radius: 3px; font-size: 0.7rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); }
+        .baba-良 { background: #fff; color: #333; }
+        .baba-稍, .baba-稍重 { background: #e3f2fd; color: #1976d2; border-color: #1976d2; }
+        .baba-重 { background: #ffebee; color: #d32f2f; border-color: #d32f2f; }
+        .baba-不, .baba-不良 { background: #424242; color: #fff; border-color: #222; }
 
-        /* 印選択エリア */
-        .mark-selectors { display: flex; gap: 10px; border-top: 1px solid var(--glass-border); padding-top: 12px; }
-        .mark-box { flex: 1; display: flex; flex-direction: column; align-items: center; }
-        .mark-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; font-weight: bold; }
-        .mark-select {
-            appearance: none; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border);
-            color: #fff; font-size: 1.4rem; padding: 10px; border-radius: 8px; width: 100%;
-            text-align: center; text-align-last: center; outline: none; font-family: 'Noto Serif JP', serif;
-            transition: all 0.2s; cursor: pointer;
+        .layoff-badge {
+            display: inline-block; background: #fbc02d; color: #111; font-size: 0.75rem; font-weight: bold; padding: 1px 4px; border-radius: 3px; margin-left: 5px; vertical-align: middle; border: 1px solid #c89a24;
         }
-        .mark-select:focus { border-color: var(--accent); }
-        .mark-select.val-◎, .mark-select.val-〇 { color: var(--mark-◎); font-weight: bold; border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.1); }
-        .mark-select.val-無 { color: #475569; }
+        .transfer-badge {
+            display: inline-block; background: #e3f2fd; color: #0d47a1; font-size: 0.75rem; font-weight: bold; padding: 1px 4px; border-radius: 3px; margin-left: 5px; vertical-align: middle; border: 1px solid #1976d2;
+        }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .gap-line {
+            border-left: 5px dashed #f57c00 !important;
+            box-shadow: inset 6px 0 6px -4px rgba(245, 124, 0, 0.2);
+        }
+        
+        .norikawari-badge {
+            display: inline-block; background: #d32f2f; color: #fff; font-size: 0.75rem; font-weight: bold; padding: 1px 4px; border-radius: 3px; margin-right: 4px; vertical-align: middle;
+        }
 
+        [contenteditable="true"] { outline: none; }
+        [contenteditable="true"]:hover { background: rgba(0,0,0,0.05); }
+
+        /* ピックアップパネル用 */
+        .pickup-area {
+            display: none;
+            background: #fff8e1;
+            border: 2px solid #ffb300;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .pickup-area.active { display: block; }
+        .pickup-title {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #d84315;
+            margin-bottom: 10px;
+            border-bottom: 2px dotted #ffcc80;
+            padding-bottom: 5px;
+        }
+        .pickup-horse {
+            display: inline-block;
+            background: #fff;
+            border: 1px solid #ffcc80;
+            border-radius: 4px;
+            padding: 6px 12px;
+            margin: 0 10px 10px 0;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        .pickup-horse .badge-clear { color: #e63946; border: 1px solid #e63946; font-size: 0.8rem; padding: 1px 4px; border-radius: 3px; margin-left: 5px; }
+        .pickup-horse .badge-close { color: #f57c00; border: 1px dashed #f57c00; font-size: 0.8rem; padding: 1px 4px; border-radius: 3px; margin-left: 5px; }
+        /* スマホ向けレスポンシブ対応 */
+        @media (max-width: 768px) {
+            body { padding: 5px; }
+            .container { padding: 10px; border: none; }
+            h1 { font-size: 1.5rem; }
+            .race-info { font-size: 0.95rem; }
+            .controls { justify-content: stretch; }
+            .ctrl-btn { width: 100%; margin-bottom: 5px; font-size: 1rem; padding: 10px; }
+            
+            .bet-input { font-size: 16px; /* iOSのズーム防止 */ }
+            select.bet-input { width: 100% !important; margin-bottom: 5px; }
+            
+            /* テーブルを横スクロールさせる */
+            .table-responsive {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin-bottom: 20px;
+                border: 2px solid var(--panel-border);
+            }
+            table {
+                min-width: 900px; /* 縮みすぎないように固定 */
+                border: none; /* ラッパー側に枠線をつける */
+                margin-bottom: 0;
+            }
+            th, td { padding: 4px; font-size: 0.85rem; }
+            .horse-name { font-size: 1rem; }
+            .shirushi-select { font-size: 1.4rem; }
+            
+            /* 過去走の表示も少し縮める */
+            .past-race { font-size: 0.8rem; }
+        }
+        
+        /* 簡易パスワードロック用 */
+        #auth-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f4f1eb; z-index: 9999;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+            padding: 20px; box-sizing: border-box;
+        }
+        #auth-modal.hidden { display: none; }
+        .auth-box {
+            background: #fff; padding: 30px; border: 2px solid #111; border-radius: 8px;
+            text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 400px; width: 100%;
+        }
+        .auth-input {
+            width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #ccc;
+            font-size: 1.2rem; box-sizing: border-box; text-align: center;
+        }
+        .auth-btn {
+            background: #111; color: #fff; padding: 10px 20px; font-size: 1.1rem;
+            border: none; cursor: pointer; width: 100%; border-radius: 4px;
+        }
+        .container { display: none; } /* 初期非表示 */
     </style>
 </head>
 <body>
 
 <!-- 簡易パスワードロック -->
 <div id="auth-modal">
-    <div class="auth-box glass-panel">
-        <h2>LUMINA TURF</h2>
-        <p style="font-size: 0.9rem; color: #cbd5e1; margin-bottom: 20px;">共有された合言葉を入力してください</p>
+    <div class="auth-box">
+        <h2 style="margin-top:0;">🔒 合言葉の入力</h2>
+        <p style="font-size: 0.9rem; color: #555;">このツールは関係者専用です。<br>共有された合言葉を入力してください。</p>
         <input type="password" id="auth-password" class="auth-input" placeholder="合言葉" onkeydown="if(event.key==='Enter') checkAuth()">
         <button class="auth-btn" onclick="checkAuth()">ログイン</button>
-        <div id="auth-error">合言葉が違います</div>
+        <div id="auth-error" style="color: #d32f2f; margin-top: 10px; font-weight: bold; display: none;">合言葉が違います</div>
     </div>
 </div>
 
-<div class="container" id="main-app">
-    <header>
-        <h1 id="ui-race-title">Lumina Turf</h1>
-        <div id="ui-race-info" class="race-info">解析待ち...</div>
-    </header>
+<div class="container">
+    <div class="controls">
+        <button class="ctrl-btn" onclick="toggleOBSMode()">OBS背景切替(透過/グリーン)</button>
+        <button class="ctrl-btn" onclick="clearMarks()">印をクリア</button>
+        <button class="ctrl-btn" onclick="clearHighlights()">ハイライトを解除</button>
+    </div>
 
-    <div class="input-panel glass-panel">
-        <h2>📝 馬柱データ入力</h2>
-        <textarea id="race-data-input" class="bet-input" style="height: 100px;" placeholder="netkeibaの表をマークダウン形式でペーストしてください。自動で本日の条件を判定します..."></textarea>
-        
-        <div class="controls-grid">
-            <select id="manual-track-select" class="bet-input" onchange="updateClassOptions()">
+    <!-- 基準タイム自動判定パネル -->
+    <div class="bet-area">
+        <h2>⏱️ 新聞風 馬柱自動生成ツール (南関版 基準タイム内蔵)</h2>
+        <div style="margin-top: 10px;">
+            <label style="font-size: 0.85rem; font-weight: bold;">馬柱データ (netkeibaのマークダウン)</label>
+            <textarea id="race-data-input" class="bet-input" style="height: 120px;" placeholder="netkeibaの表をマークダウン形式でペーストしてください。自動で今日の「競馬場」「クラス」「距離」を判定し、南関4場の内蔵データベースと比較します..."></textarea>
+        </div>
+        <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <label style="font-size: 0.85rem; font-weight: bold;">比較する基準 (基本は自動判定でOK):</label>
+            
+                        <select id="manual-track-select" class="bet-input" style="width: auto; padding: 4px; border-radius: 3px;" onchange="updateClassOptions()">
                 <option value="auto">競馬場: 自動判定</option>
                 <optgroup label="南関東">
                     <option value="大井">大井</option>
@@ -246,8 +341,9 @@
                     <option value="川崎">川崎</option>
                     <option value="浦和">浦和</option>
                 </optgroup>
-            </select>
-            <select id="manual-distance-select" class="bet-input">
+                </select>
+            
+            <select id="manual-distance-select" class="bet-input" style="width: auto; padding: 4px; border-radius: 3px;">
                 <option value="auto">距離: 自動判定</option>
                 <option value="800">800m</option>
                 <option value="820">820m</option>
@@ -276,52 +372,91 @@
                 <option value="2500">2500m</option>
                 <option value="2600">2600m</option>
             </select>
-            <select id="manual-class-select" class="bet-input" style="grid-column: span 2;">
+
+            <select id="manual-class-select" class="bet-input" style="width: auto; padding: 4px; border-radius: 3px;">
                 <option value="auto">クラス: 自動判定</option>
+                <optgroup label="重賞・OP">
+                    <option value="Jpn1">Jpn1</option>
+                    <option value="Jpn2">Jpn2</option>
+                    <option value="Jpn3">Jpn3</option>
+                    <option value="重賞">重賞</option>
+                    <option value="OP">OP</option>
+                </optgroup>
+                <optgroup label="Aクラス">
+                    <option value="A1">A1</option>
+                    <option value="A2">A2</option>
+                </optgroup>
+                <optgroup label="Bクラス">
+                    <option value="B1">B1</option>
+                    <option value="B2">B2</option>
+                    <option value="B3">B3</option>
+                </optgroup>
+                <optgroup label="Cクラス">
+                    <option value="C1">C1</option>
+                    <option value="C2">C2</option>
+                    <option value="C3">C3</option>
+                </optgroup>
             </select>
         </div>
-        
-        <button class="main-btn" onclick="executeMarkdownCheck()">データを解析して馬柱を生成</button>
-        <div id="analysis-status"></div>
+        <div style="margin-top: 10px;">
+            <button class="ctrl-btn" onclick="executeMarkdownCheck()" style="width: 100%; background: #222; color: #fff; padding: 10px; font-size: 1rem;">データを解析して馬柱を生成 (基準タイム自動照合)</button>
+        </div>
+        <div id="analysis-status" style="color: #d32f2f; font-size: 0.95rem; font-weight: bold; margin-top: 10px; text-align: center;"></div>
     </div>
 
-    <div id="pickup-container" class="pickup-area glass-panel">
+    <header>
+        <h1 id="ui-race-title" contenteditable="true" spellcheck="false">🏇 レース出走表</h1>
+        <div id="ui-race-info" class="race-info" contenteditable="true" spellcheck="false">解析待ち...</div>
+    </header>
+
+    <div id="pickup-container" class="pickup-area">
         <div class="pickup-title">💡 ピックアップ (推し騎手・転入・取消)</div>
         <div id="pickup-list"></div>
     </div>
 
-    <div id="sort-area" style="display: none;">
-        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; font-weight: bold;">並び替え:</div>
-        <div class="sort-controls">
-            <button class="sort-btn active" data-sort-type="num" onclick="sortCards('num')">馬番順</button>
-            <button class="sort-btn" data-sort-type="waku" onclick="sortCards('waku')">枠順</button>
-            <button class="sort-btn" data-sort-type="odds" onclick="sortCards('odds')">オッズ順</button>
-            <button class="sort-btn" data-sort-type="mark" onclick="sortCards('mark')">予想印順</button>
-        </div>
-    </div>
-
-    <div class="horse-list" id="horse-list">
-        <div class="glass-panel" style="padding: 30px; text-align: center; color: var(--text-muted);">
-            上部のテキストエリアにマークダウンデータを貼り付けて「生成」ボタンを押してください。<br><br>
-            ※南関版の基準タイム内蔵・自動判定対応
-        </div>
+    <div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th class="w-waku sortable" onclick="sortTable(0, 'number')" title="枠順で並び替え">枠 ↕</th>
+                <th class="w-num sortable" onclick="sortTable(1, 'number')" title="馬番で並び替え">番 ↕</th>
+                <th class="w-mark sortable" onclick="sortTable(2, 'mark')" title="予想印で並び替え">予想 ↕</th>
+                <th class="w-mark sortable" onclick="sortTable(3, 'mark')" title="パドック印で並び替え">パドック ↕</th>
+                <th class="w-name sortable" onclick="sortTable(4, 'number')" title="オッズで並び替え">馬名・オッズ↕</th>
+                <th class="w-past">前走</th>
+                <th class="w-past">2走前</th>
+                <th class="w-past">3走前</th>
+                <th class="w-past">4走前</th>
+                <th class="w-past">5走前</th>
+            </tr>
+        </thead>
+        <tbody id="horse-list">
+            <!-- JavaScriptで自動生成されます -->
+            <tr class="horse-row">
+                <td colspan="9" style="text-align: center; padding: 30px; color: #666; font-size: 1.1rem;">
+                    上部のテキストエリアにマークダウンデータを貼り付けて「データを解析して馬柱を生成」ボタンを押してください。<br>
+                    （過去のレースそれぞれに対して、本日のクラスに求められる各競馬場・距離ごとの基準タイムを自動計算します）
+                </td>
+            </tr>
+        </tbody>
+    </table>
     </div>
 </div>
 
 <script>
-    const SECRET_PASSWORD = "lumina";
+    // --- 簡易アクセス制限 ---
+    const SECRET_PASSWORD = "lumina"; // ★ここが合言葉になります
     
     document.addEventListener('DOMContentLoaded', () => {
-        if (localStorage.getItem('lumina_auth_passed_modern') === 'true') {
+        if (localStorage.getItem('lumina_auth_passed') === 'true') {
             unlockApp();
         }
-        updateClassOptions();
     });
 
     function checkAuth() {
         const input = document.getElementById('auth-password').value;
         if (input === SECRET_PASSWORD) {
-            localStorage.setItem('lumina_auth_passed_modern', 'true');
+            localStorage.setItem('lumina_auth_passed', 'true');
             unlockApp();
         } else {
             document.getElementById('auth-error').style.display = 'block';
@@ -330,7 +465,7 @@
     
     function unlockApp() {
         document.getElementById('auth-modal').classList.add('hidden');
-        document.getElementById('main-app').style.display = 'block';
+        document.querySelector('.container').style.display = 'block';
     }
 
     // --- 南関4場の基準タイムデータベース ---
@@ -375,74 +510,120 @@
         }
     };
 
-    const OSHI_JOCKEYS = {
+    // --- 推し騎手（ピックアップ・強調表示対象）の定義 ---
+        const OSHI_JOCKEYS = {
         "浦和": ["笹川翼", "野畑凌"],
         "船橋": ["笹川翼", "野畑凌"],
         "大井": ["笹川翼", "野畑凌"],
         "川崎": ["笹川翼", "野畑凌"]
     };
 
-    let currentSortType = 'num';
+    // OBS背景切り替え
+    let obsState = 0;
+    function toggleOBSMode() {
+        obsState = (obsState + 1) % 3;
+        document.body.classList.remove('obs-mode', 'obs-mode-green');
+        if (obsState === 1) document.body.classList.add('obs-mode');
+        else if (obsState === 2) document.body.classList.add('obs-mode-green');
+    }
+
+    // 印のトグル (セレクトボックス用)
+    function changeMark(select) {
+        const val = select.value;
+        select.setAttribute('data-mark', val);
+        select.className = `shirushi-select mark-${val}`;
+        
+        // 「✕」か「消」が1つでもあれば行を薄くする
+        const row = select.closest('tr');
+        if (row) {
+            const allSelects = Array.from(row.querySelectorAll('.shirushi-select'));
+            const hasKeshi = allSelects.some(s => s.value === '✕' || s.value === '消');
+            if (hasKeshi) row.classList.add('dimmed-row');
+            else row.classList.remove('dimmed-row');
+        }
+    }
+
+    function toggleHighlight(row, e) {
+        if (e.target.isContentEditable || e.target.classList.contains('shirushi-select') || e.target.tagName === 'OPTION') return;
+        row.classList.toggle('highlighted');
+    }
+
+    function clearMarks() {
+        document.querySelectorAll('.shirushi-select').forEach(sel => {
+            sel.value = '無';
+            sel.setAttribute('data-mark', '無');
+            sel.className = 'shirushi-select mark-無';
+        });
+        document.querySelectorAll('.horse-row').forEach(r => r.classList.remove('dimmed-row'));
+    }
+
+    function clearHighlights() {
+        document.querySelectorAll('.horse-row').forEach(r => r.classList.remove('highlighted'));
+    }
+
+    // --- テーブルの並び替え機能 ---
+    let currentSortCol = -1;
     let sortAsc = true;
 
-    function sortCards(type) {
-        const list = document.getElementById('horse-list');
-        const cards = Array.from(list.querySelectorAll('.horse-card'));
-        if (cards.length === 0) return;
+    function sortTable(colIndex, type) {
+        const tbody = document.getElementById('horse-list');
+        const rows = Array.from(tbody.querySelectorAll('.horse-row'));
+        if (rows.length === 0 || rows[0].children.length === 1) return; // 空の場合
         
-        if (currentSortType === type) {
+        if (currentSortCol === colIndex) {
             sortAsc = !sortAsc;
         } else {
-            currentSortType = type;
-            sortAsc = true;
+            currentSortCol = colIndex;
+            sortAsc = true; // デフォルト昇順
         }
-        
-        document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
-        const activeBtn = document.querySelector(`[data-sort-type="${type}"]`);
-        if (activeBtn) activeBtn.classList.add('active');
 
-        cards.sort((a, b) => {
-            let valA = a.getAttribute(`data-${type}`);
-            let valB = b.getAttribute(`data-${type}`);
+        rows.sort((a, b) => {
+            let valA = getCellValue(a, colIndex, type);
+            let valB = getCellValue(b, colIndex, type);
             
-            if (type === 'waku' || type === 'num' || type === 'odds') {
-                valA = parseFloat(valA) || 9999;
-                valB = parseFloat(valB) || 9999;
+            if (type === 'number') {
                 return sortAsc ? valA - valB : valB - valA;
             } else if (type === 'mark') {
+                // ◎, 〇, ▲...の順
                 const markOrder = {"◎":1, "〇":2, "▲":3, "△":4, "✕":5, "注":6, "無":7, "－":7};
                 const rankA = markOrder[valA] || 99;
                 const rankB = markOrder[valB] || 99;
                 return sortAsc ? rankA - rankB : rankB - rankA;
+            } else {
+                return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
             }
         });
 
-        cards.forEach(c => list.appendChild(c));
+        rows.forEach(row => tbody.appendChild(row));
     }
 
-    function changeMark(select, type) {
-        const val = select.value;
-        select.className = `mark-select val-${val} ${type}-mark`;
-        
-        const card = select.closest('.horse-card');
-        if (card) {
-            if (type === 'expected') {
-                card.setAttribute('data-mark', val);
-            }
-            
-            const selects = Array.from(card.querySelectorAll('.mark-select'));
-            const hasKeshi = selects.some(s => s.value === '✕' || s.value === '消');
-            
-            if (hasKeshi) {
-                card.classList.add('dimmed-card');
-            } else {
-                if (card.getAttribute('data-scratched') !== 'true') {
-                    card.classList.remove('dimmed-card');
-                }
-            }
+    function getCellValue(row, colIndex, type) {
+        if (type === 'mark') {
+            const sel = row.querySelectorAll('.shirushi-select')[colIndex === 2 ? 0 : 1];
+            return sel ? sel.value : "無";
         }
+        
+        const cell = row.children[colIndex];
+        if (!cell) return "";
+        
+        if (colIndex === 0) { // 枠
+            const box = cell.querySelector('.waku-box');
+            return box ? parseInt(box.getAttribute('data-waku')) || 99 : 99;
+        }
+        if (colIndex === 1) { // 番
+            const numDiv = cell.querySelector('.horse-num');
+            return numDiv ? parseInt(numDiv.innerText) || 99 : 99;
+        }
+        if (colIndex === 4) { // オッズ
+            const oddsDiv = cell.querySelector('.odds');
+            const text = oddsDiv ? oddsDiv.innerText : "";
+            const match = text.match(/[\d\.]+/);
+            return match ? parseFloat(match[0]) : 9999;
+        }
+        return cell.innerText.trim();
     }
 
+    // 秒数変換
     function timeToSeconds(timeStr) {
         if (!timeStr) return 9999;
         const match = timeStr.match(/(?:(\d+)[:分])?(\d+(?:\.\d+)?)/);
@@ -460,21 +641,29 @@
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
+            
+            // 表のヘッダー（次の行が|---|等の区切り線）を見つけた場合
             if (line.includes('|') && i + 1 < lines.length && lines[i+1].match(/\|\s*-+\s*\|/)) {
                 const rawHeaders = line.split('|').map(s => s.trim());
                 if (rawHeaders.length > 0 && rawHeaders[0] === '') rawHeaders.shift();
                 if (rawHeaders.length > 0 && rawHeaders[rawHeaders.length - 1] === '') rawHeaders.pop();
                 
+                // この表が馬柱かどうかをチェック（馬名や馬番が含まれているか）
                 const hasUmaName = rawHeaders.some(h => h.includes('馬名') || h.includes('馬番'));
                 if (hasUmaName) {
                     currentHeaders = rawHeaders;
                     isTable = true;
-                    i++;
+                    i++; // |---|---| の行をスキップ
                     continue;
                 }
             }
+
+            // 表の中身をパース
             if (isTable) {
-                if (!line.includes('|')) break;
+                // 表が終わった（| が含まれない行になった）ら終了
+                if (!line.includes('|')) {
+                    break;
+                }
                 const cells = line.split('|').map(s => s.trim());
                 if (cells.length > 0 && cells[0] === '') cells.shift();
                 if (cells.length > 0 && cells[cells.length - 1] === '') cells.pop();
@@ -552,7 +741,7 @@
                         '馬番': umaban,
                         '馬名': name,
                         'オッズ': line,
-                        '騎手': `${jockey} ${weight}`,
+                        '騎手': `[${jockey}](dummy) ${weight}`,
                         '前走': '', '2走': '', '3走': '', '4走': '', '5走': ''
                     };
                     horses.push(currentHorse);
@@ -589,13 +778,17 @@
         return horses;
     }
 
+    // 本日のレース条件（競馬場、クラス、距離）をテキストから推定
     function detectRaceConditions(text) {
+        // マークダウンのリンク表記 [テキスト](URL) を テキストのみ に変換する
         let normalizedText = text.replace(/\[([^\]]+)\]\([^\)]*\)/g, '$1');
+        // 全角英数字を半角に変換 (nankankeibaの「Ｃ２」などに対応するため)
         normalizedText = normalizedText.replace(/https?:\/\/[^\s\)]+/g, '');
         normalizedText = normalizedText.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
             return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
         });
 
+        // netkeibaのページ上部にある別レースの広告などを避けるため、「発走」の周辺テキストだけをピンポイントで切り出す
         const hassouIdx = normalizedText.indexOf('発走');
         let raceInfoText = "";
         if (hassouIdx !== -1) {
@@ -608,11 +801,13 @@
         let raceNumber = "";
         let raceName = "";
         
+        // 1. レース名とセットになっている確実な \d+R を探す
         const nameRegex = /(\d+)R[^\S\n\r]*([^\n\r/|]+)/g;
         let nMatch;
         while ((nMatch = nameRegex.exec(raceInfoText)) !== null) {
             let num = nMatch[1];
             let name = nMatch[2].trim().replace(/^[#*\s]+|[#*\s]+$/g, '');
+            // 「1R 2R 3R」のようなナビゲーションメニューの連続文字列でないかチェック
             if (name.length > 0 && !name.match(/^(\d+R\s*)+$/)) {
                 raceNumber = num + "R";
                 raceName = name;
@@ -620,6 +815,7 @@
             }
         }
 
+        // 2. レース名がない場合などは、「発走」に一番近い \d+R を採用する
         if (!raceNumber) {
             const hassouLocalIdx = raceInfoText.indexOf('発走');
             const rRegex = /(\d+)R/g;
@@ -634,38 +830,57 @@
             }
         }
 
+        // 発走時間 (例: 20:10)
         let startTime = "";
         const timeMatch = raceInfoText.match(/発走\s*[:：]\s*(\d{1,2}:\d{2})/);
-        if (timeMatch) startTime = timeMatch[1];
-        else {
+        if (timeMatch) {
+            startTime = timeMatch[1];
+        } else {
             const timeMatch2 = raceInfoText.match(/(\d{1,2}:\d{2})\s*発走/);
             if (timeMatch2) startTime = timeMatch2[1];
         }
         
-        let track = "大井";
+        // 競馬場
+        let track = "大井"; // default
         const tracks = ["大井", "船橋", "川崎", "浦和"];
         let maxScore = 0;
         for (let t of tracks) {
+            // 対象テキスト内での出現回数をカウント
             const count = (raceInfoText.match(new RegExp(t, 'g')) || []).length;
+            // 「〇〇競馬」「〇〇\d+R」「回〇〇」のような確定的な使われ方にはボーナススコア
             const bonusMatch1 = (raceInfoText.match(new RegExp(t + "競馬", 'g')) || []).length;
             const bonusMatch2 = (raceInfoText.match(new RegExp(t + "\\d+R", 'g')) || []).length;
             const bonusMatch3 = (raceInfoText.match(new RegExp("回" + t, 'g')) || []).length;
             const score = count + (bonusMatch1 * 5) + (bonusMatch2 * 5) + (bonusMatch3 * 5);
-            if (score > maxScore) { maxScore = score; track = t; }
+
+            if (score > maxScore) {
+                maxScore = score;
+                track = t;
+            }
         }
 
-        let raceClass = "C1";
+        // クラス
+        let raceClass = "C1"; // default
+        // 「丸の内坂賞競走(B3)」や「B3 16頭」「C1三 11頭」といった実際のフォーマットに合致するかチェック
         const classMatch = raceInfoText.match(/(Jpn1|Jpn2|Jpn3|重賞|OP|A1|A2|A3|A4|A|B1|B2|B3|B|C1|C2|C3|C4|C)(?:[一二三四五六七八九十]*\s*\d+頭|\)|\s)/);
-        if (classMatch) { raceClass = classMatch[1]; }
-        else {
+        if (classMatch) {
+            raceClass = classMatch[1];
+        } else {
+            // フォールバック（見つからなかった場合は通常の部分一致）
             const classes = ["Jpn1", "Jpn2", "Jpn3", "重賞", "OP", "A1", "A2", "A3", "A4", "A", "B1", "B2", "B3", "B", "C1", "C2", "C3", "C4", "C"];
-            for (let c of classes) { if (raceInfoText.includes(c)) { raceClass = c; break; } }
+            for (let c of classes) {
+                if (raceInfoText.includes(c)) { raceClass = c; break; }
+            }
         }
 
-        let distance = "1200";
+        // 距離 (カンマ付き「1,200」にも対応)
+        let distance = "1200"; // default
         const distMatch = raceInfoText.match(/(?:ダ|芝|ダート|障)\s*(\d{1,2},?\d{3})m?/);
-        if (distMatch) distance = distMatch[1].replace(',', '');
+        if (distMatch) {
+            distance = distMatch[1].replace(',', '');
+        }
 
+        // 馬場状態
         let baba = "";
         const babaMatch = raceInfoText.match(/馬場:([良稍重不]+)/);
         if (babaMatch) baba = babaMatch[1];
@@ -673,13 +888,17 @@
         return { track, raceClass, distance, baba, raceNumber, raceName, startTime };
     }
 
+    // 指定条件の基準タイムを取得（なければnull）
     function getStandardTime(track, distance, raceClass) {
         if (STANDARD_TIMES[track] && STANDARD_TIMES[track][distance] && STANDARD_TIMES[track][distance][raceClass]) {
             return timeToSeconds(STANDARD_TIMES[track][distance][raceClass]);
         }
+        // もし該当クラスがなければ、一つ下か上のクラスを探す等のフォールバックも可能ですが、
+        // 今回は厳密に判定します。
         return null;
     }
 
+    // 競馬場選択時にクラスのプルダウンを動的に更新する
     function updateClassOptions() {
         const track = document.getElementById('manual-track-select').value;
         const classSelect = document.getElementById('manual-class-select');
@@ -697,7 +916,9 @@
             if (times) {
                 let tempSet = new Set();
                 for (let dist in times) {
-                    for (let c in times[dist]) tempSet.add(c);
+                    for (let c in times[dist]) {
+                        tempSet.add(c);
+                    }
                 }
                 classes = Array.from(tempSet).sort((a, b) => {
                     const idxA = order.indexOf(a) !== -1 ? order.indexOf(a) : 999;
@@ -707,7 +928,13 @@
             }
         }
         
-        const groups = { "重賞・OP": [], "Aクラス": [], "Bクラス": [], "Cクラス": [] };
+        const groups = {
+            "重賞・OP": [],
+            "Aクラス": [],
+            "Bクラス": [],
+            "Cクラス": []
+        };
+        
         classes.forEach(c => {
             if (["Jpn1", "Jpn2", "Jpn3", "重賞", "OP"].includes(c)) groups["重賞・OP"].push(c);
             else if (c.startsWith("A")) groups["Aクラス"].push(c);
@@ -721,17 +948,22 @@
                 optgroup.label = gLabel;
                 gClasses.forEach(c => {
                     const opt = document.createElement('option');
-                    opt.value = c; opt.innerText = c;
+                    opt.value = c;
+                    opt.innerText = c;
                     optgroup.appendChild(opt);
                 });
                 classSelect.appendChild(optgroup);
             }
         }
         
-        if (classes.includes(currentVal)) classSelect.value = currentVal;
-        else if (currentVal !== "auto") classSelect.value = "auto";
+        if (classes.includes(currentVal)) {
+            classSelect.value = currentVal;
+        } else if (currentVal !== "auto") {
+            classSelect.value = "auto";
+        }
     }
 
+    // 解析と生成
     function executeMarkdownCheck() {
         const raceInput = document.getElementById('race-data-input').value;
         const statusEl = document.getElementById('analysis-status');
@@ -751,7 +983,10 @@
                 return;
             }
 
+            // 本日のレース条件を推定
             const conditions = detectRaceConditions(raceInput);
+            
+            // ユーザーによる条件の強制上書き
             const manualTrack = document.getElementById('manual-track-select').value;
             const manualDistance = document.getElementById('manual-distance-select').value;
             const manualClass = document.getElementById('manual-class-select').value;
@@ -760,28 +995,31 @@
             if (manualDistance !== "auto") conditions.distance = manualDistance;
             if (manualClass !== "auto") conditions.raceClass = manualClass;
             
+            // その競馬場の推し騎手リストを取得
             const currentOshi = OSHI_JOCKEYS[conditions.track] || [];
 
-            let displayTitle = `${conditions.track}競馬 `;
+            // ヘッダーUIを更新
+            let displayTitle = `🏇 ${conditions.track}競馬 `;
             if (conditions.raceNumber) displayTitle += ` ${conditions.raceNumber}`;
             if (conditions.raceName) displayTitle += ` ${conditions.raceName}`;
             if (!conditions.raceNumber && !conditions.raceName) displayTitle += " レース出走表";
+            
             if (conditions.startTime) displayTitle += ` / ${conditions.startTime} 発走`;
 
             document.getElementById('ui-race-title').innerText = displayTitle;
             
+            // ピックアップのタイトル更新
             const oshiNames = currentOshi.length > 0 ? currentOshi.join('・') : "設定なし";
-            document.querySelector('.pickup-title').innerText = `💡 ピックアップ (推し騎手: ${oshiNames})`;
+            document.querySelector('.pickup-title').innerText = `💡 ピックアップ (推し騎手: ${oshiNames} / 転入・取消)`;
             const babaText = conditions.baba ? ` / 馬場: ${conditions.baba}` : "";
-            document.getElementById('ui-race-info').innerText = `条件: ${conditions.track} / ダート ${conditions.distance}m / ${conditions.raceClass}クラス${babaText}`;
+            document.getElementById('ui-race-info').innerText = `本日の条件: ${conditions.track} / ダート ${conditions.distance}m / ${conditions.raceClass}クラス${babaText}`;
 
-            const listContainer = document.getElementById('horse-list');
-            listContainer.innerHTML = '';
-            document.getElementById('sort-area').style.display = 'block';
+            const tbody = document.getElementById('horse-list');
+            tbody.innerHTML = '';
 
             let passCount = 0;
-            let pickupHorses = [];
-            let hasScratchedRace = false;
+            let pickupHorses = []; // 推し騎手のピックアップ用配列
+            let hasScratchedRace = false; // レース全体に取消馬がいるかのフラグ
 
             raceData.forEach((horse, index) => {
                 const wakuKey = Object.keys(horse).find(k => k.includes('枠'));
@@ -811,10 +1049,14 @@
                     const oddsMatch = nameCell.match(/(\d+\.\d+)\s*\(\d+人気\)/);
                     if (oddsMatch) odds = oddsMatch[1];
 
+                    // 「中〇週」の判定 (3ヶ月 ≒ 12週以上)
                     const weeksMatch = nameCell.match(/中(\d+)週/);
                     if (weeksMatch) {
                         const w = parseInt(weeksMatch[1], 10);
-                        if (w >= 12) { isLayoff = true; layoffText = `💤 休み明け(中${w}週)`; }
+                        if (w >= 12) {
+                            isLayoff = true;
+                            layoffText = `💤休み明け(中${w}週)`;
+                        }
                     }
                 }
 
@@ -827,14 +1069,17 @@
                 let kishuHtml = "";
                 if (kishuKey && horse[kishuKey]) {
                     const kishuRaw = horse[kishuKey].trim();
+                    // Markdownリンクを解除（[笹川翼](URL) -> 笹川翼）
                     const kishuPlain = kishuRaw.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
                     
+                    // 騎手名と斤量を柔軟に抽出
                     const kMatch = kishuPlain.match(/(.*?)([^\s]+)\s+(\d+\.\d+)/);
                     if (kMatch) {
                         const pre = kMatch[1];
                         currentJockeyPlain = kMatch[2];
                         const weight = kMatch[3];
                         
+                        // 比較用に減量マーク(☆△▲など)を除外したクリーンな名前
                         const currentJockeyClean = currentJockeyPlain.replace(/^[☆△▲◇★]/, '');
                         
                         let isNorikawari = false;
@@ -844,13 +1089,18 @@
                             const prevMatch = zensoPlain.match(/\d+人\s*(.*?)\s*\d+\.\d+/);
                             if (prevMatch) {
                                 const prevJockeyClean = prevMatch[1].trim().replace(/^[☆△▲◇★]/, '');
+                                
+                                // 文字の全角半角、余計な記号を統一して判定
                                 const normalizeStr = (str) => {
                                     return str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
                                         return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
                                     }).replace(/[．・\s\[\]地外]/g, '').toUpperCase();
                                 };
+                                
                                 const cJ = normalizeStr(currentJockeyClean);
                                 const pJ = normalizeStr(prevJockeyClean);
+                                
+                                // どちらかが空でなく、かつお互いに部分一致すらしない場合のみ「乗り替わり」とする
                                 if (cJ && pJ && !cJ.includes(pJ) && !pJ.includes(cJ)) {
                                     isNorikawari = true;
                                 }
@@ -861,24 +1111,30 @@
                         const isOshiJockey = currentOshi.some(oshi => currentJockeyPlain.includes(oshi) || oshi.includes(currentJockeyPlain));
 
                         let jockeyDisplay = currentJockeyPlain;
-                        let jockeyBadge = "";
-                        
                         if (isOshiJockey) {
-                            jockeyDisplay = `<span style="color:#fbbf24;">${currentJockeyPlain}</span>`;
-                            jockeyBadge = `<span class="badge badge-oshi">💡推し</span>`;
+                            jockeyDisplay = `<span style="background: #fff8e1; border: 1px solid #ffcc80; padding: 1px 4px; border-radius: 4px; font-weight: 900; color: #d84315;">💡${currentJockeyPlain}</span>`;
                         } else if (isNorikawari || isSameDayChange) {
-                            jockeyDisplay = `<span style="color:#f43f5e;">${currentJockeyPlain}</span>`;
+                            jockeyDisplay = `<span style="color:#d32f2f; font-weight:bold;">${currentJockeyPlain}</span>`;
                         }
 
-                        if (isSameDayChange) jockeyBadge += `<span class="badge badge-norikawari" style="background:rgba(234,88,12,0.2);color:#f97316;">当日変更</span>`;
-                        else if (isNorikawari) jockeyBadge += `<span class="badge badge-norikawari">乗替</span>`;
+                        let badgeHtml = "";
+                        if (isSameDayChange) {
+                            badgeHtml = `<span class="norikawari-badge" style="background:#e65100;">当日変更</span>`;
+                        } else if (isNorikawari) {
+                            badgeHtml = `<span class="norikawari-badge">乗替</span>`;
+                        }
 
                         const cleanPre = pre.replace(/変更/g, '').trim();
-                        kishuHtml = (cleanPre ? cleanPre + " " : "") + `${jockeyBadge} ${jockeyDisplay} <span style="font-size:0.8rem;color:#94a3b8;">${weight}</span>`;
+                        kishuHtml = (cleanPre ? cleanPre + " " : "") + `${badgeHtml}${jockeyDisplay} ${weight}`;
                     } else {
+                        // フォーマットに合致しない場合でも最低限の強調を行う
                         let text = kishuPlain;
                         if (text.includes("変更")) {
-                            text = `<span class="badge badge-norikawari">当日変更</span> ` + text.replace(/変更/g, '');
+                            text = `<span class="norikawari-badge" style="background:#e65100;">当日変更</span> ` + text.replace(/変更/g, '');
+                        }
+                        const isOshiFallback = currentOshi.some(oshi => text.includes(oshi) || oshi.includes(text));
+                        if (isOshiFallback) {
+                            text = `<span style="background: #fff8e1; border: 1px solid #ffcc80; padding: 1px 4px; border-radius: 4px; font-weight: 900; color: #d84315;">💡${text}</span>`;
                         }
                         kishuHtml = text;
                     }
@@ -886,6 +1142,8 @@
 
                 let isPassRecent3 = false;
                 let passedBabas = new Set();
+                
+                // 過去走を生成
                 const pastKeys = ["前走", "2走", "3走", "4走", "5走"];
                 let pastHtml = "";
                 let previousRaceDateForGap = null;
@@ -894,27 +1152,36 @@
                     const actualKey = Object.keys(horse).find(key => key.includes(k));
                     if (actualKey && horse[actualKey]) {
                         const cell = horse[actualKey];
+                        
+                        // 競馬場の抽出 (例: 2026.04.30 大井 2) -> "大井"
                         let pastTrack = null;
                         const tracks = ["大井", "船橋", "川崎", "浦和"];
-                        for (let t of tracks) { if (cell.includes(t)) { pastTrack = t; break; } }
+                        for (let t of tracks) {
+                            if (cell.includes(t)) { pastTrack = t; break; }
+                        }
 
+                        // 日付・場所などの抽出
                         const headerMatch = cell.match(/(\d{4}\.\d{2}\.\d{2})\s+([^\s]+)\s+(\d+)?/);
                         let headerText = k;
                         let currentDate = null;
                         if (headerMatch) {
                             currentDate = new Date(headerMatch[1].replace(/\./g, '-'));
-                            const dateShort = headerMatch[1].substring(5);
+                            const dateShort = headerMatch[1].substring(5); // "04.30"
                             headerText = `${dateShort} ${headerMatch[2]}`;
                             
+                            // 前走が南関以外（JRAや他地区）なら転入判定
                             if (k.includes('前走') && !pastTrack && headerMatch[2] && !["取消", "除外", "中止"].includes(headerMatch[2])) {
                                 isTransfer = true;
                             }
                             
+                            // 休み明け判定のフォールバック (中〇週が書いてない場合、前走の日付で計算)
                             if (k.includes('前走') && !isLayoff) {
                                 const lastDate = new Date(headerMatch[1].replace(/\./g, '-'));
                                 let today = new Date();
                                 const todayMatch = raceInput.match(/kaisai_date=(\d{4})(\d{2})(\d{2})/);
-                                if (todayMatch) today = new Date(todayMatch[1], todayMatch[2]-1, todayMatch[3]);
+                                if (todayMatch) {
+                                    today = new Date(todayMatch[1], todayMatch[2]-1, todayMatch[3]);
+                                }
                                 const diffDays = (today - lastDate) / (1000 * 60 * 60 * 24);
                                 if (diffDays >= 90) {
                                     isLayoff = true;
@@ -923,28 +1190,28 @@
                             }
                         }
 
+                        // 距離・馬場などの抽出 (例: ダ1200 1:13.4 **稍**)
                         const timeMatch = cell.match(/(?:ダ|芝|障)(\d{3,4})\s+((?:\d+:)?\d+\.\d+)/);
+                        
+                        // 馬場の抽出
                         let pastBaba = "";
                         const babaMatch = cell.match(/\*\*([良稍重不]+)\*\*/);
-                        if (babaMatch) pastBaba = babaMatch[1];
-                        else {
+                        if (babaMatch) {
+                            pastBaba = babaMatch[1];
+                        } else {
                             const plainBabaMatch = cell.match(/\d+:\d+\.\d+\s+([良稍重不]+)\s+\d+頭/);
                             if (plainBabaMatch) pastBaba = plainBabaMatch[1];
                         }
-                        
-                        // バッジの色調整
-                        let babaColor = "#94a3b8"; let babaBg = "rgba(148, 163, 184, 0.1)";
-                        if (pastBaba.includes("稍")) { babaColor = "#38bdf8"; babaBg = "rgba(56, 189, 248, 0.1)"; }
-                        else if (pastBaba.includes("重")) { babaColor = "#f43f5e"; babaBg = "rgba(244, 63, 94, 0.1)"; }
-                        else if (pastBaba.includes("不")) { babaColor = "#1e293b"; babaBg = "#475569"; }
-                        
-                        const babaBadgeHtml = pastBaba ? `<span class="baba-badge" style="color:${babaColor}; background:${babaBg}; border-color:${babaColor};">${pastBaba}</span>` : "";
+                        const babaBadgeHtml = pastBaba ? `<span class="baba-badge baba-${pastBaba[0]}">${pastBaba}</span>` : "";
 
                         let timeHtml = "";
+                        
                         if (timeMatch && pastTrack) {
                             const pastDist = timeMatch[1];
                             const timeStr = timeMatch[2];
                             const sec = timeToSeconds(timeStr);
+                            
+                            // ★ 本日のクラス（conditions.raceClass）における、過去の競馬場・過去の距離の基準タイムを取得
                             const stSec = getStandardTime(pastTrack, pastDist, conditions.raceClass);
                             
                             let diffHtml = "";
@@ -952,31 +1219,48 @@
                                 const diff = (sec - stSec).toFixed(1);
                                 if (diff <= 0) {
                                     diffHtml = `<span class="diff-minus">(${diff})</span>`;
+                                    
+                                    // 近3走（インデックス0, 1, 2）でクリアしているか判定
                                     const kIdx = pastKeys.indexOf(k);
                                     if (kIdx !== -1 && kIdx < 3) {
                                         isPassRecent3 = true;
-                                        if (pastBaba) passedBabas.add(pastBaba);
+                                        if (pastBaba) {
+                                            passedBabas.add(pastBaba);
+                                        }
                                     }
                                 } else if (diff <= 0.5) {
                                     diffHtml = `<span class="diff-close">(+${diff}) 惜</span>`;
+                                    
                                     const kIdx = pastKeys.indexOf(k);
-                                    if (kIdx !== -1 && kIdx < 3) isCloseRecent3 = true;
+                                    if (kIdx !== -1 && kIdx < 3) {
+                                        isCloseRecent3 = true;
+                                    }
                                 } else {
                                     diffHtml = `<span class="diff-plus">(+${diff})</span>`;
                                 }
                             }
-                            timeHtml = `<div class="past-time"><span style="font-size:0.8rem; color:#94a3b8;">${pastDist}m</span> ${babaBadgeHtml} <span>${timeStr}</span> ${diffHtml}</div>`;
+                            timeHtml = `<div class="time-display"><span>${pastDist}m</span> ${babaBadgeHtml} <span>${timeStr}</span> ${diffHtml}</div>`;
                         } else if (timeMatch) {
-                            timeHtml = `<div class="past-time"><span style="font-size:0.8rem; color:#94a3b8;">${timeMatch[1]}m</span> ${babaBadgeHtml} <span>${timeMatch[2]}</span></div>`;
+                            // 南関以外の競馬場（JRAなど）の場合はタイムだけ表示
+                            timeHtml = `<div class="time-display"><span>${timeMatch[1]}m</span> ${babaBadgeHtml} <span>${timeMatch[2]}</span></div>`;
                         } else {
-                            timeHtml = `<div style="color:#475569; padding: 10px 0;">---</div>`;
+                            timeHtml = `<div style="color:#888;">---</div>`;
                         }
 
+                        // 騎手の抽出
                         const zensoPlainCell = cell.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+                        const pastJockeyMatch = zensoPlainCell.match(/\d+人\s+([^\s]+)\s+(\d+(?:\.\d+)?)/);
+                        const pastJockey = pastJockeyMatch ? pastJockeyMatch[1] : "";
+                        const pastWeight = pastJockeyMatch ? pastJockeyMatch[2] : "";
+                        const pastJockeyHtml = pastJockey ? `<span style="font-weight:bold; color:#1976d2;">${pastJockey}</span> <span style="font-size:0.75rem; color:#555;">${pastWeight}</span>` : "";
+
+                        // 着順などを抽出
                         const posMatch = zensoPlainCell.match(/(\d+頭\s+\d+番\s+\d+人).*?(\d+(?:-\d+)*\s+\(\d+\.\d+\))/);
                         let posText = "";
                         if (posMatch) {
-                            posText = `${posMatch[1]}<br>${posMatch[2]}`;
+                            posText = `${posMatch[1]} ${pastJockeyHtml}<br>${posMatch[2]}`;
+                            
+                            // 脚質判定のために最初のコーナー通過順位を抽出
                             const kIdx = pastKeys.indexOf(k);
                             if (kIdx !== -1 && kIdx < 3) {
                                 const cornerAndAgari = posMatch[2].split(/\s*\(/); 
@@ -987,119 +1271,126 @@
                             }
                         } else {
                             const simplePosMatch = zensoPlainCell.match(/(\d+頭\s+\d+番\s+\d+人)/);
-                            if (simplePosMatch) posText = `${simplePosMatch[1]}`;
+                            if (simplePosMatch) posText = `${simplePosMatch[1]} ${pastJockeyHtml}`;
                         }
 
                         let gapClass = "";
                         if (previousRaceDateForGap && currentDate) {
                             const diffDays = (previousRaceDateForGap - currentDate) / (1000 * 60 * 60 * 24);
-                            if (diffDays >= 90) gapClass = " gap-line";
+                            if (diffDays >= 90) { // 3ヶ月(90日)以上の間隔
+                                gapClass = " gap-line";
+                            }
                         }
-                        if (currentDate) previousRaceDateForGap = currentDate;
+                        if (currentDate) {
+                            previousRaceDateForGap = currentDate;
+                        }
 
                         pastHtml += `
-                            <div class="past-card${gapClass}">
-                                <div class="past-header">${headerText}</div>
-                                ${timeHtml}
-                                <div class="past-pos">${posText}</div>
-                            </div>
+                            <td class="w-past${gapClass}">
+                                <div class="past-race" contenteditable="true" spellcheck="false">
+                                    <div class="race-header">${headerText}</div>
+                                    ${timeHtml}
+                                    <div style="font-size: 0.75rem; color: #555; margin-top: 3px;">${posText}</div>
+                                </div>
+                            </td>
                         `;
                     } else {
-                        pastHtml += `<div class="past-card" style="display:flex; align-items:center; justify-content:center; color:#475569;">-</div>`;
+                        pastHtml += `<td class="w-past"><div class="past-race" style="color:#ccc; text-align:center; padding-top:10px;">-</div></td>`;
                         previousRaceDateForGap = null;
                     }
                 });
 
                 if (isPassRecent3) passCount++;
                 
-                const layoffHtml = isLayoff ? `<span class="badge badge-layoff">${layoffText}</span>` : "";
-                const transferHtml = isTransfer ? `<span class="badge badge-transfer">🆕転入</span>` : "";
-                const scratchedHtml = isScratched ? `<span class="badge badge-scratched">🚫取消/除外</span>` : "";
+                const layoffHtml = isLayoff ? `<span class="layoff-badge">${layoffText}</span>` : "";
+                const transferHtml = isTransfer ? `<span class="transfer-badge">🆕転入</span>` : "";
+                const scratchedHtml = isScratched ? `<span class="scratched-badge" style="display:inline-block; background:#212121; color:#fff; font-size:0.85rem; font-weight:bold; padding:2px 6px; border-radius:3px; margin-left:5px; vertical-align:middle; border:1px solid #000; text-decoration:none;">🚫取消/除外</span>` : "";
 
                 let highlightClass = "";
-                if (isScratched) highlightClass = " dimmed-card";
-                else if (isPassRecent3) {
-                    if (passedBabas.size >= 2) highlightClass = " highlighted-strong";
-                    else highlightClass = " highlighted-normal";
+                if (isScratched) {
+                    highlightClass = " dimmed-row"; // 取消・除外なら行全体を暗転
+                } else if (isPassRecent3) {
+                    if (passedBabas.size >= 2) {
+                        highlightClass = " highlighted-strong"; // 異なる馬場でクリア（赤）
+                    } else {
+                        highlightClass = " highlighted-normal"; // 単一馬場でクリア（青）
+                    }
                 }
                 
+                // 脚質判定
                 let runningStyleHtml = "";
                 if (pastCornerPositions.length > 0) {
                     const avgPos = pastCornerPositions.reduce((sum, val) => sum + val, 0) / pastCornerPositions.length;
-                    if (avgPos <= 2.0) runningStyleHtml = `<span class="badge" style="background:rgba(244,63,94,0.15); color:#f43f5e; border:1px solid rgba(244,63,94,0.3);">【逃げ】</span>`;
-                    else if (avgPos <= 5.0) runningStyleHtml = `<span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">【先行】</span>`;
-                    else if (avgPos <= 8.5) runningStyleHtml = `<span class="badge" style="background:rgba(34,197,94,0.15); color:#22c55e; border:1px solid rgba(34,197,94,0.3);">【差し】</span>`;
-                    else runningStyleHtml = `<span class="badge" style="background:rgba(168,85,247,0.15); color:#a855f7; border:1px solid rgba(168,85,247,0.3);">【追込】</span>`;
+                    if (avgPos <= 2.0) {
+                        runningStyleHtml = `<span style="display:inline-block; font-size:0.75rem; font-weight:bold; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle; background:#fce4ec; color:#c2185b; border:1px solid #f48fb1;">【逃げ】</span>`;
+                    } else if (avgPos <= 5.0) {
+                        runningStyleHtml = `<span style="display:inline-block; font-size:0.75rem; font-weight:bold; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle; background:#e1f5fe; color:#0277bd; border:1px solid #81d4fa;">【先行】</span>`;
+                    } else if (avgPos <= 8.5) {
+                        runningStyleHtml = `<span style="display:inline-block; font-size:0.75rem; font-weight:bold; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle; background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7;">【差し】</span>`;
+                    } else {
+                        runningStyleHtml = `<span style="display:inline-block; font-size:0.75rem; font-weight:bold; padding:1px 4px; border-radius:3px; margin-left:5px; vertical-align:middle; background:#f3e5f5; color:#7b1fa2; border:1px solid #ce93d8;">【追込】</span>`;
+                    }
                 }
 
                 const marksOptionsHtml = ["無", "◎", "〇", "▲", "△", "✕", "消", "注"].map(m => 
                     `<option value="${m}">${m === "無" ? "－" : m}</option>`
                 ).join('');
 
-                const card = document.createElement('div');
-                card.className = 'horse-card glass-panel ' + highlightClass;
-                card.setAttribute('data-waku', wakuNum);
-                card.setAttribute('data-num', umaban);
-                card.setAttribute('data-odds', odds === "---" ? 9999 : parseFloat(odds));
-                card.setAttribute('data-mark', '無');
-                if (isScratched) card.setAttribute('data-scratched', 'true');
+                const tr = document.createElement('tr');
+                tr.className = 'horse-row' + highlightClass;
+                tr.onclick = function(e) { toggleHighlight(this, e); };
                 
-                // fallback for waku color
-                const validWaku = parseInt(wakuNum) >= 1 && parseInt(wakuNum) <= 8 ? wakuNum : 99;
-
-                card.innerHTML = `
-                    <div class="card-header">
-                        <div class="waku-indicator waku-${validWaku}">${wakuNum}</div>
-                        <div class="horse-num">${umaban}</div>
-                        <div class="horse-info">
-                            <div class="horse-name" ${isScratched ? 'style="text-decoration:line-through; color:#64748b;"' : ''}>${name}</div>
-                            <div class="horse-meta">
-                                <span class="jockey">${kishuHtml}</span>
-                                <span class="odds">${odds}倍</span>
-                            </div>
-                            <div class="badges">
-                                ${runningStyleHtml}
-                                ${transferHtml}
-                                ${layoffHtml}
-                                ${scratchedHtml}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="past-races">
-                        ${pastHtml}
-                    </div>
-                    <div class="mark-selectors">
-                        <div class="mark-box">
-                            <div class="mark-label">予想印</div>
-                            <select class="mark-select val-無 expected-mark" onchange="changeMark(this, 'expected')">${marksOptionsHtml}</select>
-                        </div>
-                        <div class="mark-box">
-                            <div class="mark-label">パドック</div>
-                            <select class="mark-select val-無 paddock-mark" onchange="changeMark(this, 'paddock')">${marksOptionsHtml}</select>
-                        </div>
-                    </div>
+                tr.innerHTML = `
+                    <td class="waku-cell"><div class="waku-box" data-waku="${wakuNum}">${wakuNum}</div></td>
+                    <td class="center"><div class="horse-num">${umaban}</div></td>
+                    <td class="center">
+                        <select class="shirushi-select mark-無" data-mark="無" onchange="changeMark(this)">${marksOptionsHtml}</select>
+                    </td>
+                    <td class="center">
+                        <select class="shirushi-select mark-無" data-mark="無" onchange="changeMark(this)">${marksOptionsHtml}</select>
+                    </td>
+                    <td>
+                        <div class="horse-name" contenteditable="true" spellcheck="false"><span ${isScratched ? 'style="text-decoration:line-through; color:#9e9e9e;"' : ''}>${name}</span>${runningStyleHtml}${transferHtml}${layoffHtml}${scratchedHtml}</div>
+                        <div class="odds" contenteditable="true" spellcheck="false">オッズ: ${odds}</div>
+                        <div class="horse-sub" contenteditable="true" spellcheck="false">${kishuHtml}</div>
+                    </td>
+                    ${pastHtml}
                 `;
-                listContainer.appendChild(card);
+                tbody.appendChild(tr);
 
+                // 「推し騎手」の判定（1文字だけでの部分一致は誤爆の原因になるので、2文字以上の部分一致のみ許可）
                 const isOshiJockeyForPickup = currentJockeyPlain && currentJockeyPlain.length >= 2 && currentOshi.some(oshi => currentJockeyPlain.includes(oshi) || oshi.includes(currentJockeyPlain));
+
+                // 推し騎手は「足りてる」か「惜しい」時のみピックアップの対象とする
                 const isValidOshiPickup = isOshiJockeyForPickup && (isPassRecent3 || isCloseRecent3);
 
+                // ピックアップ判定（有効な推し騎手、転入馬、取消/除外馬）
                 if (isValidOshiPickup || isTransfer || isScratched) {
                     pickupHorses.push({
-                        umaban: umaban, name: name, jockey: currentJockeyPlain || "---",
-                        isScratched: isScratched, isPass: isPassRecent3, isClose: isCloseRecent3,
-                        isTransfer: isTransfer, isOshi: isOshiJockeyForPickup
+                        umaban: umaban,
+                        name: name,
+                        jockey: currentJockeyPlain || "---",
+                        isScratched: isScratched,
+                        isPass: isPassRecent3,
+                        isClose: isCloseRecent3,
+                        isTransfer: isTransfer,
+                        isOshi: isOshiJockeyForPickup
                     });
                 }
             });
 
             if (hasScratchedRace) {
-                statusEl.innerHTML = `<div style="background:rgba(244,63,94,0.2); border:1px solid #f43f5e; padding:10px; border-radius:8px; color:#fecdd3; margin-bottom:10px;">🚨 <b>警告: 取消/除外馬が含まれています。見送りを推奨します。</b></div><div>✨ 解析完了 (${passCount}頭クリア)</div>`;
-                setTimeout(() => { alert("⚠️ 警告 ⚠️\nこのレースには「取消」または「除外」となった馬が含まれています。\n見送ることを強くお勧めします！"); }, 50);
+                statusEl.innerHTML = `<div style="background-color: #ffebee; border: 2px solid #d32f2f; padding: 10px; border-radius: 6px; font-size: 1.1rem; color: #d32f2f; text-align: center; margin-bottom: 5px;">🚨 <b>警告: このレースには【取消 / 除外】の馬が含まれています。レース自体の見送りを強く推奨します！</b></div><div style="font-size: 0.95rem;">✨ 馬柱生成完了！ ${conditions.track} ${conditions.raceClass}クラスの基準で解析し、${passCount}頭が過去5走でクリアしています。</div>`;
+                
+                // 画面描画直後にポップアップアラートで知らせる
+                setTimeout(() => {
+                    alert("⚠️ 警告 ⚠️\nこのレースには「取消」または「除外」となった馬が含まれています。\n\nレースのペースや展開が大きく変わる可能性があるため、このレースでの勝負は【見送る】ことを強くお勧めします！");
+                }, 50);
             } else {
-                statusEl.innerText = `✨ 解析完了 (${conditions.track} ${conditions.raceClass}クラス基準 / ${passCount}頭クリア)`;
+                statusEl.innerText = `✨ 馬柱生成完了！ ${conditions.track} ${conditions.raceClass}クラスの基準で解析し、${passCount}頭が過去5走でクリアしています。`;
             }
 
+            // ピックアップエリアの更新
             const pickupContainer = document.getElementById('pickup-container');
             const pickupList = document.getElementById('pickup-list');
             if (pickupHorses.length > 0) {
@@ -1108,16 +1399,16 @@
                     let badge = "";
                     let horseDisplay = `${h.umaban}番 ${h.name} (${h.jockey})`;
                     if (h.isScratched) {
-                        badge += `<span class="badge badge-scratched" style="margin-left:5px;">🚫取消/除外</span>`;
-                        horseDisplay = `<span style="text-decoration: line-through; color: #64748b;">${horseDisplay}</span>`;
+                        badge += `<span style="color: #fff; border: 1px solid #000; font-size: 0.85rem; padding: 2px 6px; border-radius: 4px; margin-left: 5px; background: #212121; font-weight: bold;">🚫取消/除外</span>`;
+                        horseDisplay = `<span style="text-decoration: line-through; color: #9e9e9e;">${horseDisplay}</span>`;
                     } else {
-                        if (h.isPass) badge += `<span style="color:#f43f5e; border:1px solid #f43f5e; padding:2px 6px; border-radius:4px; font-size:0.75rem; margin-left:5px;">足りてる</span>`;
-                        else if (h.isClose) badge += `<span style="color:#fb923c; border:1px dashed #fb923c; padding:2px 6px; border-radius:4px; font-size:0.75rem; margin-left:5px;">惜しい</span>`;
+                        if (h.isPass) badge += `<span class="badge-clear">足りてる</span>`;
+                        else if (h.isClose) badge += `<span class="badge-close">惜しい</span>`;
                         
-                        if (h.isTransfer) badge += `<span class="badge badge-transfer" style="margin-left:5px;">⚠️転入警戒</span>`;
+                        if (h.isTransfer) badge += `<span style="color: #d32f2f; border: 1px dashed #d32f2f; font-size: 0.8rem; padding: 1px 4px; border-radius: 3px; margin-left: 5px; background: #ffebee; font-weight: bold;">⚠️転入 (警戒)</span>`;
                     }
                     
-                    let oshiBadge = h.isOshi ? `<span style="color:#fb923c; font-weight:bold;">💡推し</span> ` : "";
+                    let oshiBadge = h.isOshi ? `<span style="color:#d32f2f; font-weight:bold;">💡推し</span> ` : "";
                     pHTML += `<div class="pickup-horse">${oshiBadge}${horseDisplay} ${badge}</div>`;
                 });
                 pickupList.innerHTML = pHTML;
@@ -1127,7 +1418,9 @@
                 pickupContainer.classList.remove('active');
             }
 
-            sortCards('num');
+            // 初回表示時に自動でオッズ順(列インデックス4)でソートする
+            currentSortCol = -1; // ソート状態をリセット
+            sortTable(4, 'number');
 
         } catch (error) {
             console.error(error);
