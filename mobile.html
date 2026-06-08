@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lumina Turf - Mobile App</title>
+    <!-- Font for numbers and Japanese -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0b0f19 0%, #1a233a 100%);
+            --glass-bg: rgba(255, 255, 255, 0.04);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-glow: 0 0 15px rgba(56, 189, 248, 0.4);
+            --danger: #fb7185;
+            
+            --mark-◎: #f43f5e;
+            --mark-〇: #fb923c;
+            --mark-▲: #cbd5e1;
+            --mark-△: #94a3b8;
+            --mark-✕: #475569;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text-main);
+            margin: 0;
+            padding: 10px;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        /* パスワードロック画面 */
+        #auth-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-gradient); z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; box-sizing: border-box;
+        }
+        #auth-modal.hidden { opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+        .auth-box {
+            padding: 30px; text-align: center; width: 100%; max-width: 340px;
+        }
+        .auth-box h2 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 900; letter-spacing: 2px;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-top: 0;
+        }
+        .auth-input {
+            width: 100%; padding: 14px; margin: 20px 0;
+            background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border);
+            color: #fff; font-size: 1.2rem; border-radius: 8px; text-align: center;
+            outline: none; transition: border-color 0.2s;
+        }
+        .auth-input:focus { border-color: var(--accent); }
+        .auth-btn {
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            color: #fff; padding: 14px; font-size: 1.1rem; font-weight: bold;
+            border: none; cursor: pointer; width: 100%; border-radius: 8px;
+            box-shadow: var(--accent-glow); transition: transform 0.1s;
+        }
+        .auth-btn:active { transform: scale(0.98); }
+        #auth-error { color: var(--danger); margin-top: 10px; font-weight: bold; display: none; font-size: 0.9rem; }
+
+        .container { display: none; padding-bottom: 20px; }
+
+        header { text-align: center; margin-bottom: 20px; }
+        h1 {
+            font-family: 'Outfit', sans-serif; font-size: 1.8rem; font-weight: 900;
+            margin: 10px 0 5px 0; background: linear-gradient(to right, #e2e8f0, #94a3b8);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .race-info { font-size: 0.95rem; color: var(--accent); font-weight: bold; }
+
+        .input-panel { padding: 15px; margin-bottom: 20px; }
+        .input-panel h2 { font-size: 1.1rem; margin-top: 0; color: #e2e8f0; margin-bottom: 10px; font-weight: 900; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px; }
+        .bet-input {
+            width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border);
+            color: #e2e8f0; padding: 10px; border-radius: 8px; font-family: monospace;
+            font-size: 14px; box-sizing: border-box; outline: none; margin-bottom: 10px;
+        }
+        .bet-input:focus { border-color: var(--accent); }
+        select.bet-input { appearance: none; background: rgba(0,0,0,0.5); }
+        .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        
+        .main-btn {
+            background: linear-gradient(135deg, #10b981, #059669); color: #fff;
+            padding: 14px; border: none; border-radius: 8px; font-weight: bold;
+            font-size: 1.1rem; width: 100%; cursor: pointer;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); transition: transform 0.1s;
+        }
+        .main-btn:active { transform: scale(0.98); }
+        #analysis-status { margin-top: 10px; text-align: center; font-size: 0.9rem; color: #f8fafc; font-weight: bold; }
+
+        /* ピックアップエリア */
+        .pickup-area {
+            display: none; padding: 15px; margin-bottom: 20px;
+            border-left: 4px solid #fbbf24;
+        }
+        .pickup-area.active { display: block; animation: fadeIn 0.4s ease; }
+        .pickup-title { font-size: 1rem; font-weight: bold; color: #fbbf24; margin-bottom: 10px; }
+        .pickup-horse {
+            display: inline-block; background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3); color: #fde68a;
+            padding: 8px 12px; border-radius: 8px; font-size: 0.9rem;
+            margin: 0 8px 8px 0; font-weight: bold;
+        }
+
+        /* 馬カードのレイアウト */
+        .sort-controls { display: flex; gap: 10px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+        .sort-btn {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            color: #e2e8f0; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem;
+            white-space: nowrap; cursor: pointer; transition: all 0.2s; font-weight: bold;
+        }
+        .sort-btn.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
+
+        .horse-list { display: flex; flex-direction: column; gap: 15px; }
+        
+        .horse-card {
+            position: relative; overflow: hidden; padding: 15px; transition: transform 0.2s, filter 0.2s;
+        }
+        .horse-card.dimmed-card { opacity: 0.4; filter: grayscale(100%); }
+        .horse-card.highlighted-normal { border: 1px solid rgba(56, 189, 248, 0.4); box-shadow: 0 0 15px rgba(56, 189, 248, 0.15); }
+        .horse-card.highlighted-strong { border: 1px solid rgba(251, 113, 133, 0.5); box-shadow: 0 0 15px rgba(251, 113, 133, 0.2); }
+
+        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
+        .waku-indicator {
+            width: 40px; height: 40px; border-radius: 10px; display: flex;
+            align-items: center; justify-content: center; font-weight: 900;
+            font-size: 1.2rem; font-family: 'Outfit', sans-serif;
+            border: 2px solid rgba(255,255,255,0.2); flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        /* 枠色 */
+        .waku-1 { background: #f8fafc; color: #0f172a; }
+        .waku-2 { background: #1e293b; color: #f8fafc; border-color: #475569; }
+        .waku-3 { background: #ef4444; color: #fff; border-color: #fca5a5; }
+        .waku-4 { background: #3b82f6; color: #fff; border-color: #93c5fd; }
+        .waku-5 { background: #eab308; color: #fff; border-color: #fde047; }
+        .waku-6 { background: #22c55e; color: #fff; border-color: #86efac; }
+        .waku-7 { background: #f97316; color: #fff; border-color: #fdba74; }
+        .waku-8 { background: #ec4899; color: #fff; border-color: #f9a8d4; }
+        .waku-99 { background: #475569; color: #fff; }
+
+        .horse-num { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.6rem; color: #fff; text-align: center; min-width: 28px;}
+        
+        .horse-info { flex-grow: 1; }
+        .horse-name { font-size: 1.25rem; font-weight: 900; color: #fff; line-height: 1.2; margin-bottom: 4px; }
+        .horse-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .jockey { color: #818cf8; font-weight: bold; }
+        .odds { font-family: 'Outfit', sans-serif; color: #cbd5e1; font-size: 0.9rem; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;}
+
+        .badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+        .badge {
+            font-size: 0.75rem; font-weight: bold; padding: 2px 6px; border-radius: 4px;
+        }
+        .badge-style { background: rgba(255,255,255,0.1); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.2); }
+        .badge-transfer { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+        .badge-layoff { background: rgba(250, 204, 21, 0.15); color: #facc15; border: 1px solid rgba(250, 204, 21, 0.3); }
+        .badge-scratched { background: #1e293b; color: #94a3b8; border: 1px solid #475569; }
+        .badge-norikawari { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); }
+
+        /* 過去走の横スクロール */
+        .past-races { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 12px; scroll-snap-type: x mandatory; }
+        .past-races::-webkit-scrollbar { height: 6px; }
+        .past-races::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        
+        .past-card {
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px; padding: 10px; min-width: 160px; flex-shrink: 0;
+            scroll-snap-align: start; font-size: 0.85rem; box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .past-card.gap-line { border-left: 3px dashed #f57c00; }
+        .past-header { color: #94a3b8; font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 6px; padding-bottom: 4px; font-weight: bold;}
+        .past-time { font-family: 'Outfit', sans-serif; font-size: 1.1rem; font-weight: bold; color: #fff; margin: 4px 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;}
+        .diff-minus { color: #f43f5e; background: rgba(244, 63, 94, 0.15); padding: 1px 4px; border-radius: 4px; font-size: 0.85rem; font-weight: bold;}
+        .diff-close { color: #fb923c; border: 1px dashed rgba(251, 146, 60, 0.5); padding: 1px 4px; border-radius: 4px; font-size: 0.85rem; font-weight: bold;}
+        .diff-plus { color: #64748b; font-size: 0.8rem; }
+        .past-pos { color: #cbd5e1; font-size: 0.75rem; line-height: 1.4; margin-top: 4px;}
+        .baba-badge { display: inline-block; padding: 1px 4px; border-radius: 3px; font-size: 0.7rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); }
+
+        /* 印選択エリア */
+        .mark-selectors { display: flex; gap: 10px; border-top: 1px solid var(--glass-border); padding-top: 12px; }
+        .mark-box { flex: 1; display: flex; flex-direction: column; align-items: center; }
+        .mark-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; font-weight: bold; }
+        .mark-select {
+            appearance: none; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border);
+            color: #fff; font-size: 1.4rem; padding: 10px; border-radius: 8px; width: 100%;
+            text-align: center; text-align-last: center; outline: none; font-family: 'Noto Serif JP', serif;
+            transition: all 0.2s; cursor: pointer;
+        }
+        .mark-select:focus { border-color: var(--accent); }
+        .mark-select.val-◎, .mark-select.val-〇 { color: var(--mark-◎); font-weight: bold; border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.1); }
+        .mark-select.val-無 { color: #475569; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    </style>
+</head>
+<body>
+
+<!-- 簡易パスワードロック -->
+<div id="auth-modal">
+    <div class="auth-box glass-panel">
+        <h2>LUMINA TURF</h2>
+        <p style="font-size: 0.9rem; color: #cbd5e1; margin-bottom: 20px;">共有された合言葉を入力してください</p>
+        <input type="password" id="auth-password" class="auth-input" placeholder="合言葉" onkeydown="if(event.key==='Enter') checkAuth()">
+        <button class="auth-btn" onclick="checkAuth()">ログイン</button>
+        <div id="auth-error">合言葉が違います</div>
+    </div>
+</div>
+
+<div class="container" id="main-app">
+    <header>
+        <h1 id="ui-race-title">Lumina Turf</h1>
+        <div id="ui-race-info" class="race-info">解析待ち...</div>
+    </header>
+
+    <div class="input-panel glass-panel">
+        <h2>📝 馬柱データ入力</h2>
+        <textarea id="race-data-input" class="bet-input" style="height: 100px;" placeholder="netkeibaの表をマークダウン形式でペーストしてください。自動で本日の条件を判定します..."></textarea>
+        
+        <div class="controls-grid">
+            <select id="manual-track-select" class="bet-input" onchange="updateClassOptions()">
+                <option value="auto">競馬場: 自動判定</option>
+                <optgroup label="南関東">
+                    <option value="大井">大井</option>
+                    <option value="船橋">船橋</option>
+                    <option value="川崎">川崎</option>
+                    <option value="浦和">浦和</option>
+                </optgroup>
+            </select>
+            <select id="manual-distance-select" class="bet-input">
+                <option value="auto">距離: 自動判定</option>
+                <option value="800">800m</option>
+                <option value="820">820m</option>
+                <option value="850">850m</option>
+                <option value="900">900m</option>
+                <option value="920">920m</option>
+                <option value="1000">1000m</option>
+                <option value="1100">1100m</option>
+                <option value="1200">1200m</option>
+                <option value="1230">1230m</option>
+                <option value="1300">1300m</option>
+                <option value="1400">1400m</option>
+                <option value="1500">1500m</option>
+                <option value="1600">1600m</option>
+                <option value="1650">1650m</option>
+                <option value="1700">1700m</option>
+                <option value="1750">1750m</option>
+                <option value="1800">1800m</option>
+                <option value="1860">1860m</option>
+                <option value="1870">1870m</option>
+                <option value="1900">1900m</option>
+                <option value="2000">2000m</option>
+                <option value="2100">2100m</option>
+                <option value="2200">2200m</option>
+                <option value="2400">2400m</option>
+                <option value="2500">2500m</option>
+                <option value="2600">2600m</option>
+            </select>
+            <select id="manual-class-select" class="bet-input" style="grid-column: span 2;">
+                <option value="auto">クラス: 自動判定</option>
+            </select>
+        </div>
+        
+        <button class="main-btn" onclick="executeMarkdownCheck()">データを解析して馬柱を生成</button>
+        <div id="analysis-status"></div>
+    </div>
+
+    <div id="pickup-container" class="pickup-area glass-panel">
+        <div class="pickup-title">💡 ピックアップ (推し騎手・転入・取消)</div>
+        <div id="pickup-list"></div>
+    </div>
+
+    <div id="sort-area" style="display: none;">
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; font-weight: bold;">並び替え:</div>
+        <div class="sort-controls">
+            <button class="sort-btn active" data-sort-type="num" onclick="sortCards('num')">馬番順</button>
+            <button class="sort-btn" data-sort-type="waku" onclick="sortCards('waku')">枠順</button>
+            <button class="sort-btn" data-sort-type="odds" onclick="sortCards('odds')">オッズ順</button>
+            <button class="sort-btn" data-sort-type="mark" onclick="sortCards('mark')">予想印順</button>
+        </div>
+    </div>
+
+    <div class="horse-list" id="horse-list">
+        <div class="glass-panel" style="padding: 30px; text-align: center; color: var(--text-muted);">
+            上部のテキストエリアにマークダウンデータを貼り付けて「生成」ボタンを押してください。<br><br>
+            ※南関版の基準タイム内蔵・自動判定対応
+        </div>
+    </div>
+</div>
+
+<script>
+    const SECRET_PASSWORD = "lumina";
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('lumina_auth_passed_modern') === 'true') {
+            unlockApp();
+        }
+        updateClassOptions();
+    });
+
+    function checkAuth() {
+        const input = document.getElementById('auth-password').value;
+        if (input === SECRET_PASSWORD) {
+            localStorage.setItem('lumina_auth_passed_modern', 'true');
+            unlockApp();
+        } else {
+            document.getElementById('auth-error').style.display = 'block';
+        }
+    }
+    
+    function unlockApp() {
+        document.getElementById('auth-modal').classList.add('hidden');
+        document.getElementById('main-app').style.display = 'block';
+    }
+
+    // --- 南関4場の基準タイムデータベース ---
+    const STANDARD_TIMES = {
+        "大井": {
+            "1000": {"C2": "1:00.2", "C1": "1:00.8", "B2": "1:00.1", "B1": "1:00.1", "OP": "57.9"},
+            "1200": {"C3": "1:15.1", "C2": "1:14.4", "C1": "1:13.8", "B3": "1:13.2", "B2": "1:13.0", "B1": "1:12.9", "A2": "1:12.7", "OP": "1:12.4", "重賞": "1:11.7", "Jpn2": "1:11.1", "Jpn1": "1:12.1"},
+            "1400": {"C3": "1:29.8", "C2": "1:28.7", "C1": "1:28.1", "B3": "1:27.3", "B2": "1:27.0", "B1": "1:27.2", "A2": "1:26.3", "OP": "1:25.8", "重賞": "1:25.0"},
+            "1600": {"C3": "1:44.5", "C2": "1:43.7", "C1": "1:42.8", "B3": "1:42.1", "B2": "1:41.6", "B1": "1:41.6", "A2": "1:41.3", "OP": "1:41.2", "重賞": "1:41.0"},
+            "1700": {"C3": "1:53.0", "C2": "1:51.1", "C1": "1:48.6"},
+            "1800": {"C3": "1:59.0", "C2": "1:57.6", "C1": "1:56.2", "B3": "1:55.8", "B2": "1:55.2", "B1": "1:55.0", "A2": "1:54.4", "OP": "1:55.6", "重賞": "1:52.9", "Jpn3": "1:54.0", "Jpn2": "1:53.0", "Jpn1": "1:53.3"},
+            "2000": {"C3": "2:12.9", "C2": "2:10.9", "C1": "2:10.7", "B3": "2:09.1", "B2": "2:10.1", "B1": "2:08.8", "A2": "2:07.4", "OP": "2:10.8", "重賞": "2:04.9", "Jpn1": "2:04.4"},
+            "2400": {"OP": "2:36.5", "重賞": "2:37.1"},
+            "2600": {"OP": "2:52.8", "重賞": "2:49.2"},
+            "1650": {"C2": "1:45.7", "C1": "1:46.5", "B3": "1:45.5", "B2": "1:45.7", "B1": "1:46.1"}
+        },
+        "船橋": {
+            "1000": {"C3": "1:03.0", "C2": "1:02.4", "C1": "1:01.8", "B3": "1:01.2", "B2": "1:01.1", "B1": "1:00.3", "A2": "1:00.4", "OP": "1:00.2", "重賞": "59.7"},
+            "1200": {"C3": "1:17.0", "C2": "1:16.0", "C1": "1:15.4", "B3": "1:14.7", "B2": "1:14.6", "B1": "1:14.3", "A2": "1:14.0", "OP": "1:13.5"},
+            "1500": {"C3": "1:39.7", "C2": "1:38.5", "C1": "1:37.8", "B3": "1:36.9", "B2": "1:38.3", "B1": "1:36.5"},
+            "1600": {"C3": "1:46.6", "C2": "1:44.8", "C1": "1:44.2", "B3": "1:43.8", "B2": "1:43.9", "B1": "1:43.2", "A2": "1:42.7", "OP": "1:40.9", "重賞": "1:42.2", "Jpn3": "1:42.1", "Jpn2": "1:39.3"},
+            "1700": {"C3": "1:54.2", "B3": "1:51.6", "B2": "1:49.5", "B1": "1:49.8", "A2": "1:49.9", "OP": "1:48.6"},
+            "1800": {"C3": "2:00.7", "C2": "1:59.2", "C1": "1:57.8", "B3": "1:56.9", "B2": "1:56.3", "B1": "1:55.0", "A2": "1:55.9", "OP": "1:55.5", "重賞": "1:54.1", "Jpn3": "1:51.9", "Jpn2": "1:52.6"},
+            "2200": {"C2": "2:30.8", "C1": "2:30.1", "B3": "2:27.4", "B2": "2:28.8", "B1": "2:27.4", "A2": "2:26.1", "OP": "2:27.2"},
+            "2400": {"Jpn2": "2:37.6"}
+        },
+        "川崎": {
+            "900": {"C3": "56.0", "C2": "55.6", "C1": "55.1", "B3": "54.6", "B2": "54.4", "B1": "54.1", "A2": "54.0", "OP": "53.8", "重賞": "53.4"},
+            "1400": {"C3": "1:33.3", "C2": "1:32.4", "C1": "1:31.6", "B3": "1:30.8", "B2": "1:30.5"},
+            "1500": {"C3": "1:39.3", "C2": "1:38.3", "C1": "1:37.5", "B3": "1:37.0", "B2": "1:36.6", "B1": "1:36.1", "A2": "1:35.4", "OP": "1:34.6"},
+            "1600": {"C3": "1:45.7", "C2": "1:46.6", "C1": "1:45.3", "B3": "1:45.0", "B2": "1:44.4", "B1": "1:44.2", "A2": "1:43.3", "OP": "1:42.9", "重賞": "1:42.3", "Jpn3": "1:41.3"},
+            "2000": {"C3": "2:17.6", "C2": "2:16.2", "C1": "2:15.5", "B3": "2:14.9", "B2": "2:13.8", "B1": "2:13.9", "A2": "2:11.8", "OP": "2:11.7"},
+            "2100": {"A2": "2:22.3", "OP": "2:19.5", "重賞": "2:17.2", "Jpn2": "2:17.5", "Jpn1": "2:15.7"}
+        },
+        "浦和": {
+            "800": {"C3": "48.7", "C2": "48.1", "C1": "47.7", "B3": "47.3", "B2": "47.1"},
+            "1300": {"C3": "1:23.1"},
+            "1400": {"C3": "1:31.6", "C2": "1:30.6", "C1": "1:29.6", "B3": "1:29.1", "B2": "1:28.7", "B1": "1:28.2", "A2": "1:28.0", "OP": "1:27.4", "重賞": "1:26.6", "Jpn3": "1:25.8", "Jpn2": "1:25.3"},
+            "1500": {"C3": "1:38.7", "C2": "1:37.7", "C1": "1:37.1", "B3": "1:36.3", "B2": "1:36.0", "B1": "1:35.6", "A2": "1:35.0", "重賞": "1:36.7"},
+            "1600": {"C1": "1:44.0"},
+            "2000": {"C3": "2:15.2", "C2": "2:14.2", "C1": "2:12.3", "B3": "2:11.9", "B2": "2:10.8", "A2": "2:11.1", "OP": "2:08.1", "重賞": "2:08.6", "Jpn2": "2:06.9"}
+        }
+    };
+
+    const OSHI_JOCKEYS = {
+        "浦和": ["笹川翼", "野畑凌"],
+        "船橋": ["笹川翼", "野畑凌"],
+        "大井": ["笹川翼", "野畑凌"],
+        "川崎": ["笹川翼", "野畑凌"]
+    };
+
+    let currentSortType = 'num';
+    let sortAsc = true;
+
+    function sortCards(type) {
+        const list = document.getElementById('horse-list');
+        const cards = Array.from(list.querySelectorAll('.horse-card'));
+        if (cards.length === 0) return;
+        
+        if (currentSortType === type) {
+            sortAsc = !sortAsc;
+        } else {
+            currentSortType = type;
+            sortAsc = true;
+        }
+        
+        document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.querySelector(`[data-sort-type="${type}"]`);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        cards.sort((a, b) => {
+            let valA = a.getAttribute(`data-${type}`);
+            let valB = b.getAttribute(`data-${type}`);
+            
+            if (type === 'waku' || type === 'num' || type === 'odds') {
+                valA = parseFloat(valA) || 9999;
+                valB = parseFloat(valB) || 9999;
+                return sortAsc ? valA - valB : valB - valA;
+            } else if (type === 'mark') {
+                const markOrder = {"◎":1, "〇":2, "▲":3, "△":4, "✕":5, "注":6, "無":7, "－":7};
+                const rankA = markOrder[valA] || 99;
+                const rankB = markOrder[valB] || 99;
+                return sortAsc ? rankA - rankB : rankB - rankA;
+            }
+        });
+
+        cards.forEach(c => list.appendChild(c));
+    }
+
+    function changeMark(select, type) {
+        const val = select.value;
+        select.className = `mark-select val-${val} ${type}-mark`;
+        
+        const card = select.closest('.horse-card');
+        if (card) {
+            if (type === 'expected') {
+                card.setAttribute('data-mark', val);
+            }
+            
+            const selects = Array.from(card.querySelectorAll('.mark-select'));
+            const hasKeshi = selects.some(s => s.value === '✕' || s.value === '消');
+            
+            if (hasKeshi) {
+                card.classList.add('dimmed-card');
+            } else {
+                if (card.getAttribute('data-scratched') !== 'true') {
+                    card.classList.remove('dimmed-card');
+                }
+            }
+        }
+    }
+
+    function timeToSeconds(timeStr) {
+        if (!timeStr) return 9999;
+        const match = timeStr.match(/(?:(\d+)[:分])?(\d+(?:\.\d+)?)/);
+        if (!match) return parseFloat(timeStr) || 9999;
+        let sec = parseFloat(match[2]);
+        if (match[1]) sec += parseInt(match[1]) * 60;
+        return sec;
+    }
+
+    function parseMarkdownTable(md) {
+        const lines = md.trim().split('\n');
+        let data = [];
+        let currentHeaders = [];
+        let isTable = false;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (line.includes('|') && i + 1 < lines.length && lines[i+1].match(/\|\s*-+\s*\|/)) {
+                const rawHeaders = line.split('|').map(s => s.trim());
+                if (rawHeaders.length > 0 && rawHeaders[0] === '') rawHeaders.shift();
+                if (rawHeaders.length > 0 && rawHeaders[rawHeaders.length - 1] === '') rawHeaders.pop();
+                
+                const hasUmaName = rawHeaders.some(h => h.includes('馬名') || h.includes('馬番'));
+                if (hasUmaName) {
+                    currentHeaders = rawHeaders;
+                    isTable = true;
+                    i++;
+                    continue;
+                }
+            }
+            if (isTable) {
+                if (!line.includes('|')) break;
+                const cells = line.split('|').map(s => s.trim());
+                if (cells.length > 0 && cells[0] === '') cells.shift();
+                if (cells.length > 0 && cells[cells.length - 1] === '') cells.pop();
+                
+                const rowObj = {};
+                currentHeaders.forEach((h, idx) => { rowObj[h] = cells[idx] || ''; });
+                data.push(rowObj);
+            }
+        }
+        return data;
+    }
+
+    function detectRaceConditions(text) {
+        let normalizedText = text.replace(/\[([^\]]+)\]\([^\)]*\)/g, '$1');
+        normalizedText = normalizedText.replace(/https?:\/\/[^\s\)]+/g, '');
+        normalizedText = normalizedText.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
+            return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+        });
+
+        const hassouIdx = normalizedText.indexOf('発走');
+        let raceInfoText = "";
+        if (hassouIdx !== -1) {
+            const start = Math.max(0, hassouIdx - 200);
+            raceInfoText = normalizedText.substring(start, start + 500);
+        } else {
+            raceInfoText = normalizedText.substring(0, 1000);
+        }
+
+        let raceNumber = "";
+        let raceName = "";
+        
+        const nameRegex = /(\d+)R[^\S\n\r]*([^\n\r/|]+)/g;
+        let nMatch;
+        while ((nMatch = nameRegex.exec(raceInfoText)) !== null) {
+            let num = nMatch[1];
+            let name = nMatch[2].trim().replace(/^[#*\s]+|[#*\s]+$/g, '');
+            if (name.length > 0 && !name.match(/^(\d+R\s*)+$/)) {
+                raceNumber = num + "R";
+                raceName = name;
+                break;
+            }
+        }
+
+        if (!raceNumber) {
+            const hassouLocalIdx = raceInfoText.indexOf('発走');
+            const rRegex = /(\d+)R/g;
+            let rMatch;
+            let closestDist = 9999;
+            while ((rMatch = rRegex.exec(raceInfoText)) !== null) {
+                const dist = Math.abs(rMatch.index - hassouLocalIdx);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    raceNumber = rMatch[1] + "R";
+                }
+            }
+        }
+
+        let startTime = "";
+        const timeMatch = raceInfoText.match(/発走\s*[:：]\s*(\d{1,2}:\d{2})/);
+        if (timeMatch) startTime = timeMatch[1];
+        else {
+            const timeMatch2 = raceInfoText.match(/(\d{1,2}:\d{2})\s*発走/);
+            if (timeMatch2) startTime = timeMatch2[1];
+        }
+        
+        let track = "大井";
+        const tracks = ["大井", "船橋", "川崎", "浦和"];
+        let maxScore = 0;
+        for (let t of tracks) {
+            const count = (raceInfoText.match(new RegExp(t, 'g')) || []).length;
+            const bonusMatch1 = (raceInfoText.match(new RegExp(t + "競馬", 'g')) || []).length;
+            const bonusMatch2 = (raceInfoText.match(new RegExp(t + "\\d+R", 'g')) || []).length;
+            const bonusMatch3 = (raceInfoText.match(new RegExp("回" + t, 'g')) || []).length;
+            const score = count + (bonusMatch1 * 5) + (bonusMatch2 * 5) + (bonusMatch3 * 5);
+            if (score > maxScore) { maxScore = score; track = t; }
+        }
+
+        let raceClass = "C1";
+        const classMatch = raceInfoText.match(/(Jpn1|Jpn2|Jpn3|重賞|OP|A1|A2|A3|A4|A|B1|B2|B3|B|C1|C2|C3|C4|C)(?:[一二三四五六七八九十]*\s*\d+頭|\)|\s)/);
+        if (classMatch) { raceClass = classMatch[1]; }
+        else {
+            const classes = ["Jpn1", "Jpn2", "Jpn3", "重賞", "OP", "A1", "A2", "A3", "A4", "A", "B1", "B2", "B3", "B", "C1", "C2", "C3", "C4", "C"];
+            for (let c of classes) { if (raceInfoText.includes(c)) { raceClass = c; break; } }
+        }
+
+        let distance = "1200";
+        const distMatch = raceInfoText.match(/(?:ダ|芝|ダート|障)\s*(\d{1,2},?\d{3})m?/);
+        if (distMatch) distance = distMatch[1].replace(',', '');
+
+        let baba = "";
+        const babaMatch = raceInfoText.match(/馬場:([良稍重不]+)/);
+        if (babaMatch) baba = babaMatch[1];
+
+        return { track, raceClass, distance, baba, raceNumber, raceName, startTime };
+    }
+
+    function getStandardTime(track, distance, raceClass) {
+        if (STANDARD_TIMES[track] && STANDARD_TIMES[track][distance] && STANDARD_TIMES[track][distance][raceClass]) {
+            return timeToSeconds(STANDARD_TIMES[track][distance][raceClass]);
+        }
+        return null;
+    }
+
+    function updateClassOptions() {
+        const track = document.getElementById('manual-track-select').value;
+        const classSelect = document.getElementById('manual-class-select');
+        const currentVal = classSelect.value;
+        
+        classSelect.innerHTML = '<option value="auto">クラス: 自動判定</option>';
+        
+        let classes = [];
+        const order = ["Jpn1", "Jpn2", "Jpn3", "重賞", "OP", "A1", "A2", "B1", "B2", "B3", "C1", "C2", "C3"];
+        
+        if (track === "auto") {
+            classes = [...order];
+        } else {
+            const times = STANDARD_TIMES[track];
+            if (times) {
+                let tempSet = new Set();
+                for (let dist in times) {
+                    for (let c in times[dist]) tempSet.add(c);
+                }
+                classes = Array.from(tempSet).sort((a, b) => {
+                    const idxA = order.indexOf(a) !== -1 ? order.indexOf(a) : 999;
+                    const idxB = order.indexOf(b) !== -1 ? order.indexOf(b) : 999;
+                    return idxA - idxB;
+                });
+            }
+        }
+        
+        const groups = { "重賞・OP": [], "Aクラス": [], "Bクラス": [], "Cクラス": [] };
+        classes.forEach(c => {
+            if (["Jpn1", "Jpn2", "Jpn3", "重賞", "OP"].includes(c)) groups["重賞・OP"].push(c);
+            else if (c.startsWith("A")) groups["Aクラス"].push(c);
+            else if (c.startsWith("B")) groups["Bクラス"].push(c);
+            else if (c.startsWith("C")) groups["Cクラス"].push(c);
+        });
+        
+        for (const [gLabel, gClasses] of Object.entries(groups)) {
+            if (gClasses.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = gLabel;
+                gClasses.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c; opt.innerText = c;
+                    optgroup.appendChild(opt);
+                });
+                classSelect.appendChild(optgroup);
+            }
+        }
+        
+        if (classes.includes(currentVal)) classSelect.value = currentVal;
+        else if (currentVal !== "auto") classSelect.value = "auto";
+    }
+
+    function executeMarkdownCheck() {
+        const raceInput = document.getElementById('race-data-input').value;
+        const statusEl = document.getElementById('analysis-status');
+        
+        if (!raceInput) {
+            statusEl.innerText = "⚠️ 馬柱データを入力してください。";
+            return;
+        }
+
+        try {
+            const raceData = parseMarkdownTable(raceInput);
+            if (raceData.length === 0) {
+                statusEl.innerText = "⚠️ 馬柱データからテーブルを読み取れませんでした。";
+                return;
+            }
+
+            const conditions = detectRaceConditions(raceInput);
+            const manualTrack = document.getElementById('manual-track-select').value;
+            const manualDistance = document.getElementById('manual-distance-select').value;
+            const manualClass = document.getElementById('manual-class-select').value;
+            
+            if (manualTrack !== "auto") conditions.track = manualTrack;
+            if (manualDistance !== "auto") conditions.distance = manualDistance;
+            if (manualClass !== "auto") conditions.raceClass = manualClass;
+            
+            const currentOshi = OSHI_JOCKEYS[conditions.track] || [];
+
+            let displayTitle = `${conditions.track}競馬 `;
+            if (conditions.raceNumber) displayTitle += ` ${conditions.raceNumber}`;
+            if (conditions.raceName) displayTitle += ` ${conditions.raceName}`;
+            if (!conditions.raceNumber && !conditions.raceName) displayTitle += " レース出走表";
+            if (conditions.startTime) displayTitle += ` / ${conditions.startTime} 発走`;
+
+            document.getElementById('ui-race-title').innerText = displayTitle;
+            
+            const oshiNames = currentOshi.length > 0 ? currentOshi.join('・') : "設定なし";
+            document.querySelector('.pickup-title').innerText = `💡 ピックアップ (推し騎手: ${oshiNames})`;
+            const babaText = conditions.baba ? ` / 馬場: ${conditions.baba}` : "";
+            document.getElementById('ui-race-info').innerText = `条件: ${conditions.track} / ダート ${conditions.distance}m / ${conditions.raceClass}クラス${babaText}`;
+
+            const listContainer = document.getElementById('horse-list');
+            listContainer.innerHTML = '';
+            document.getElementById('sort-area').style.display = 'block';
+
+            let passCount = 0;
+            let pickupHorses = [];
+            let hasScratchedRace = false;
+
+            raceData.forEach((horse, index) => {
+                const wakuKey = Object.keys(horse).find(k => k.includes('枠'));
+                const umabanKey = Object.keys(horse).find(k => k.includes('番')) || Object.keys(horse)[0];
+                const nameKey = Object.keys(horse).find(k => k.includes('名')) || Object.keys(horse)[1];
+                const kishuKey = Object.keys(horse).find(k => k.includes('騎手')) || null;
+
+                const wakuNum = wakuKey ? horse[wakuKey].trim() : Math.min(Math.ceil((index + 1) / 2), 8);
+                const umaban = horse[umabanKey] ? horse[umabanKey].trim() : (index + 1);
+                
+                let name = `馬${index+1}`;
+                let odds = "---";
+                let isLayoff = false;
+                let isTransfer = false;
+                let isScratched = false;
+                let layoffText = "";
+                let isCloseRecent3 = false;
+                let currentJockeyPlain = "";
+                let pastCornerPositions = [];
+                
+                if (horse[nameKey]) {
+                    const nameCell = horse[nameKey];
+                    const nameMatch = nameCell.match(/\[([^\]]+)\]\(https:\/\/db\.netkeiba\.com\/horse\//);
+                    if (nameMatch) name = nameMatch[1];
+                    else name = nameCell.split(/\s|\[/)[0];
+                    
+                    const oddsMatch = nameCell.match(/(\d+\.\d+)\s*\(\d+人気\)/);
+                    if (oddsMatch) odds = oddsMatch[1];
+
+                    const weeksMatch = nameCell.match(/中(\d+)週/);
+                    if (weeksMatch) {
+                        const w = parseInt(weeksMatch[1], 10);
+                        if (w >= 12) { isLayoff = true; layoffText = `💤 休み明け(中${w}週)`; }
+                    }
+                }
+
+                const rowValuesStr = Object.values(horse).join(" ");
+                if (rowValuesStr.includes("取消") || rowValuesStr.includes("除外") || rowValuesStr.includes("計不")) {
+                    isScratched = true;
+                    hasScratchedRace = true;
+                }
+
+                let kishuHtml = "";
+                if (kishuKey && horse[kishuKey]) {
+                    const kishuRaw = horse[kishuKey].trim();
+                    const kishuPlain = kishuRaw.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+                    
+                    const kMatch = kishuPlain.match(/(.*?)([^\s]+)\s+(\d+\.\d+)/);
+                    if (kMatch) {
+                        const pre = kMatch[1];
+                        currentJockeyPlain = kMatch[2];
+                        const weight = kMatch[3];
+                        
+                        const currentJockeyClean = currentJockeyPlain.replace(/^[☆△▲◇★]/, '');
+                        
+                        let isNorikawari = false;
+                        const zensoKey = Object.keys(horse).find(k => k === '前走' || k.includes('前走'));
+                        if (zensoKey && horse[zensoKey]) {
+                            const zensoPlain = horse[zensoKey].replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+                            const prevMatch = zensoPlain.match(/\d+人\s*(.*?)\s*\d+\.\d+/);
+                            if (prevMatch) {
+                                const prevJockeyClean = prevMatch[1].trim().replace(/^[☆△▲◇★]/, '');
+                                const normalizeStr = (str) => {
+                                    return str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
+                                        return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+                                    }).replace(/[．・\s\[\]地外]/g, '').toUpperCase();
+                                };
+                                const cJ = normalizeStr(currentJockeyClean);
+                                const pJ = normalizeStr(prevJockeyClean);
+                                if (cJ && pJ && !cJ.includes(pJ) && !pJ.includes(cJ)) {
+                                    isNorikawari = true;
+                                }
+                            }
+                        }
+
+                        const isSameDayChange = kishuPlain.includes("変更");
+                        const isOshiJockey = currentOshi.some(oshi => currentJockeyPlain.includes(oshi) || oshi.includes(currentJockeyPlain));
+
+                        let jockeyDisplay = currentJockeyPlain;
+                        let jockeyBadge = "";
+                        
+                        if (isOshiJockey) {
+                            jockeyDisplay = `<span style="color:#fbbf24;">${currentJockeyPlain}</span>`;
+                            jockeyBadge = `<span class="badge badge-oshi">💡推し</span>`;
+                        } else if (isNorikawari || isSameDayChange) {
+                            jockeyDisplay = `<span style="color:#f43f5e;">${currentJockeyPlain}</span>`;
+                        }
+
+                        if (isSameDayChange) jockeyBadge += `<span class="badge badge-norikawari" style="background:rgba(234,88,12,0.2);color:#f97316;">当日変更</span>`;
+                        else if (isNorikawari) jockeyBadge += `<span class="badge badge-norikawari">乗替</span>`;
+
+                        const cleanPre = pre.replace(/変更/g, '').trim();
+                        kishuHtml = (cleanPre ? cleanPre + " " : "") + `${jockeyBadge} ${jockeyDisplay} <span style="font-size:0.8rem;color:#94a3b8;">${weight}</span>`;
+                    } else {
+                        let text = kishuPlain;
+                        if (text.includes("変更")) {
+                            text = `<span class="badge badge-norikawari">当日変更</span> ` + text.replace(/変更/g, '');
+                        }
+                        kishuHtml = text;
+                    }
+                }
+
+                let isPassRecent3 = false;
+                let passedBabas = new Set();
+                const pastKeys = ["前走", "2走", "3走", "4走", "5走"];
+                let pastHtml = "";
+                let previousRaceDateForGap = null;
+
+                pastKeys.forEach(k => {
+                    const actualKey = Object.keys(horse).find(key => key.includes(k));
+                    if (actualKey && horse[actualKey]) {
+                        const cell = horse[actualKey];
+                        let pastTrack = null;
+                        const tracks = ["大井", "船橋", "川崎", "浦和"];
+                        for (let t of tracks) { if (cell.includes(t)) { pastTrack = t; break; } }
+
+                        const headerMatch = cell.match(/(\d{4}\.\d{2}\.\d{2})\s+([^\s]+)\s+(\d+)?/);
+                        let headerText = k;
+                        let currentDate = null;
+                        if (headerMatch) {
+                            currentDate = new Date(headerMatch[1].replace(/\./g, '-'));
+                            const dateShort = headerMatch[1].substring(5);
+                            headerText = `${dateShort} ${headerMatch[2]}`;
+                            
+                            if (k.includes('前走') && !pastTrack && headerMatch[2] && !["取消", "除外", "中止"].includes(headerMatch[2])) {
+                                isTransfer = true;
+                            }
+                            
+                            if (k.includes('前走') && !isLayoff) {
+                                const lastDate = new Date(headerMatch[1].replace(/\./g, '-'));
+                                let today = new Date();
+                                const todayMatch = raceInput.match(/kaisai_date=(\d{4})(\d{2})(\d{2})/);
+                                if (todayMatch) today = new Date(todayMatch[1], todayMatch[2]-1, todayMatch[3]);
+                                const diffDays = (today - lastDate) / (1000 * 60 * 60 * 24);
+                                if (diffDays >= 90) {
+                                    isLayoff = true;
+                                    layoffText = `💤休み明け(${Math.floor(diffDays/30)}ヶ月)`;
+                                }
+                            }
+                        }
+
+                        const timeMatch = cell.match(/(?:ダ|芝|障)(\d{3,4})\s+((?:\d+:)?\d+\.\d+)/);
+                        let pastBaba = "";
+                        const babaMatch = cell.match(/\*\*([良稍重不]+)\*\*/);
+                        if (babaMatch) pastBaba = babaMatch[1];
+                        else {
+                            const plainBabaMatch = cell.match(/\d+:\d+\.\d+\s+([良稍重不]+)\s+\d+頭/);
+                            if (plainBabaMatch) pastBaba = plainBabaMatch[1];
+                        }
+                        
+                        // バッジの色調整
+                        let babaColor = "#94a3b8"; let babaBg = "rgba(148, 163, 184, 0.1)";
+                        if (pastBaba.includes("稍")) { babaColor = "#38bdf8"; babaBg = "rgba(56, 189, 248, 0.1)"; }
+                        else if (pastBaba.includes("重")) { babaColor = "#f43f5e"; babaBg = "rgba(244, 63, 94, 0.1)"; }
+                        else if (pastBaba.includes("不")) { babaColor = "#1e293b"; babaBg = "#475569"; }
+                        
+                        const babaBadgeHtml = pastBaba ? `<span class="baba-badge" style="color:${babaColor}; background:${babaBg}; border-color:${babaColor};">${pastBaba}</span>` : "";
+
+                        let timeHtml = "";
+                        if (timeMatch && pastTrack) {
+                            const pastDist = timeMatch[1];
+                            const timeStr = timeMatch[2];
+                            const sec = timeToSeconds(timeStr);
+                            const stSec = getStandardTime(pastTrack, pastDist, conditions.raceClass);
+                            
+                            let diffHtml = "";
+                            if (stSec) {
+                                const diff = (sec - stSec).toFixed(1);
+                                if (diff <= 0) {
+                                    diffHtml = `<span class="diff-minus">(${diff})</span>`;
+                                    const kIdx = pastKeys.indexOf(k);
+                                    if (kIdx !== -1 && kIdx < 3) {
+                                        isPassRecent3 = true;
+                                        if (pastBaba) passedBabas.add(pastBaba);
+                                    }
+                                } else if (diff <= 0.5) {
+                                    diffHtml = `<span class="diff-close">(+${diff}) 惜</span>`;
+                                    const kIdx = pastKeys.indexOf(k);
+                                    if (kIdx !== -1 && kIdx < 3) isCloseRecent3 = true;
+                                } else {
+                                    diffHtml = `<span class="diff-plus">(+${diff})</span>`;
+                                }
+                            }
+                            timeHtml = `<div class="past-time"><span style="font-size:0.8rem; color:#94a3b8;">${pastDist}m</span> ${babaBadgeHtml} <span>${timeStr}</span> ${diffHtml}</div>`;
+                        } else if (timeMatch) {
+                            timeHtml = `<div class="past-time"><span style="font-size:0.8rem; color:#94a3b8;">${timeMatch[1]}m</span> ${babaBadgeHtml} <span>${timeMatch[2]}</span></div>`;
+                        } else {
+                            timeHtml = `<div style="color:#475569; padding: 10px 0;">---</div>`;
+                        }
+
+                        const zensoPlainCell = cell.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+                        const posMatch = zensoPlainCell.match(/(\d+頭\s+\d+番\s+\d+人).*?(\d+(?:-\d+)*\s+\(\d+\.\d+\))/);
+                        let posText = "";
+                        if (posMatch) {
+                            posText = `${posMatch[1]}<br>${posMatch[2]}`;
+                            const kIdx = pastKeys.indexOf(k);
+                            if (kIdx !== -1 && kIdx < 3) {
+                                const cornerAndAgari = posMatch[2].split(/\s*\(/); 
+                                if (cornerAndAgari[0]) {
+                                    const firstCorner = parseInt(cornerAndAgari[0].split('-')[0], 10);
+                                    if (!isNaN(firstCorner)) pastCornerPositions.push(firstCorner);
+                                }
+                            }
+                        } else {
+                            const simplePosMatch = zensoPlainCell.match(/(\d+頭\s+\d+番\s+\d+人)/);
+                            if (simplePosMatch) posText = `${simplePosMatch[1]}`;
+                        }
+
+                        let gapClass = "";
+                        if (previousRaceDateForGap && currentDate) {
+                            const diffDays = (previousRaceDateForGap - currentDate) / (1000 * 60 * 60 * 24);
+                            if (diffDays >= 90) gapClass = " gap-line";
+                        }
+                        if (currentDate) previousRaceDateForGap = currentDate;
+
+                        pastHtml += `
+                            <div class="past-card${gapClass}">
+                                <div class="past-header">${headerText}</div>
+                                ${timeHtml}
+                                <div class="past-pos">${posText}</div>
+                            </div>
+                        `;
+                    } else {
+                        pastHtml += `<div class="past-card" style="display:flex; align-items:center; justify-content:center; color:#475569;">-</div>`;
+                        previousRaceDateForGap = null;
+                    }
+                });
+
+                if (isPassRecent3) passCount++;
+                
+                const layoffHtml = isLayoff ? `<span class="badge badge-layoff">${layoffText}</span>` : "";
+                const transferHtml = isTransfer ? `<span class="badge badge-transfer">🆕転入</span>` : "";
+                const scratchedHtml = isScratched ? `<span class="badge badge-scratched">🚫取消/除外</span>` : "";
+
+                let highlightClass = "";
+                if (isScratched) highlightClass = " dimmed-card";
+                else if (isPassRecent3) {
+                    if (passedBabas.size >= 2) highlightClass = " highlighted-strong";
+                    else highlightClass = " highlighted-normal";
+                }
+                
+                let runningStyleHtml = "";
+                if (pastCornerPositions.length > 0) {
+                    const avgPos = pastCornerPositions.reduce((sum, val) => sum + val, 0) / pastCornerPositions.length;
+                    if (avgPos <= 2.0) runningStyleHtml = `<span class="badge" style="background:rgba(244,63,94,0.15); color:#f43f5e; border:1px solid rgba(244,63,94,0.3);">【逃げ】</span>`;
+                    else if (avgPos <= 5.0) runningStyleHtml = `<span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">【先行】</span>`;
+                    else if (avgPos <= 8.5) runningStyleHtml = `<span class="badge" style="background:rgba(34,197,94,0.15); color:#22c55e; border:1px solid rgba(34,197,94,0.3);">【差し】</span>`;
+                    else runningStyleHtml = `<span class="badge" style="background:rgba(168,85,247,0.15); color:#a855f7; border:1px solid rgba(168,85,247,0.3);">【追込】</span>`;
+                }
+
+                const marksOptionsHtml = ["無", "◎", "〇", "▲", "△", "✕", "消", "注"].map(m => 
+                    `<option value="${m}">${m === "無" ? "－" : m}</option>`
+                ).join('');
+
+                const card = document.createElement('div');
+                card.className = 'horse-card glass-panel ' + highlightClass;
+                card.setAttribute('data-waku', wakuNum);
+                card.setAttribute('data-num', umaban);
+                card.setAttribute('data-odds', odds === "---" ? 9999 : parseFloat(odds));
+                card.setAttribute('data-mark', '無');
+                if (isScratched) card.setAttribute('data-scratched', 'true');
+                
+                // fallback for waku color
+                const validWaku = parseInt(wakuNum) >= 1 && parseInt(wakuNum) <= 8 ? wakuNum : 99;
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="waku-indicator waku-${validWaku}">${wakuNum}</div>
+                        <div class="horse-num">${umaban}</div>
+                        <div class="horse-info">
+                            <div class="horse-name" ${isScratched ? 'style="text-decoration:line-through; color:#64748b;"' : ''}>${name}</div>
+                            <div class="horse-meta">
+                                <span class="jockey">${kishuHtml}</span>
+                                <span class="odds">${odds}倍</span>
+                            </div>
+                            <div class="badges">
+                                ${runningStyleHtml}
+                                ${transferHtml}
+                                ${layoffHtml}
+                                ${scratchedHtml}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="past-races">
+                        ${pastHtml}
+                    </div>
+                    <div class="mark-selectors">
+                        <div class="mark-box">
+                            <div class="mark-label">予想印</div>
+                            <select class="mark-select val-無 expected-mark" onchange="changeMark(this, 'expected')">${marksOptionsHtml}</select>
+                        </div>
+                        <div class="mark-box">
+                            <div class="mark-label">パドック</div>
+                            <select class="mark-select val-無 paddock-mark" onchange="changeMark(this, 'paddock')">${marksOptionsHtml}</select>
+                        </div>
+                    </div>
+                `;
+                listContainer.appendChild(card);
+
+                const isOshiJockeyForPickup = currentJockeyPlain && currentJockeyPlain.length >= 2 && currentOshi.some(oshi => currentJockeyPlain.includes(oshi) || oshi.includes(currentJockeyPlain));
+                const isValidOshiPickup = isOshiJockeyForPickup && (isPassRecent3 || isCloseRecent3);
+
+                if (isValidOshiPickup || isTransfer || isScratched) {
+                    pickupHorses.push({
+                        umaban: umaban, name: name, jockey: currentJockeyPlain || "---",
+                        isScratched: isScratched, isPass: isPassRecent3, isClose: isCloseRecent3,
+                        isTransfer: isTransfer, isOshi: isOshiJockeyForPickup
+                    });
+                }
+            });
+
+            if (hasScratchedRace) {
+                statusEl.innerHTML = `<div style="background:rgba(244,63,94,0.2); border:1px solid #f43f5e; padding:10px; border-radius:8px; color:#fecdd3; margin-bottom:10px;">🚨 <b>警告: 取消/除外馬が含まれています。見送りを推奨します。</b></div><div>✨ 解析完了 (${passCount}頭クリア)</div>`;
+                setTimeout(() => { alert("⚠️ 警告 ⚠️\nこのレースには「取消」または「除外」となった馬が含まれています。\n見送ることを強くお勧めします！"); }, 50);
+            } else {
+                statusEl.innerText = `✨ 解析完了 (${conditions.track} ${conditions.raceClass}クラス基準 / ${passCount}頭クリア)`;
+            }
+
+            const pickupContainer = document.getElementById('pickup-container');
+            const pickupList = document.getElementById('pickup-list');
+            if (pickupHorses.length > 0) {
+                let pHTML = "";
+                pickupHorses.forEach(h => {
+                    let badge = "";
+                    let horseDisplay = `${h.umaban}番 ${h.name} (${h.jockey})`;
+                    if (h.isScratched) {
+                        badge += `<span class="badge badge-scratched" style="margin-left:5px;">🚫取消/除外</span>`;
+                        horseDisplay = `<span style="text-decoration: line-through; color: #64748b;">${horseDisplay}</span>`;
+                    } else {
+                        if (h.isPass) badge += `<span style="color:#f43f5e; border:1px solid #f43f5e; padding:2px 6px; border-radius:4px; font-size:0.75rem; margin-left:5px;">足りてる</span>`;
+                        else if (h.isClose) badge += `<span style="color:#fb923c; border:1px dashed #fb923c; padding:2px 6px; border-radius:4px; font-size:0.75rem; margin-left:5px;">惜しい</span>`;
+                        
+                        if (h.isTransfer) badge += `<span class="badge badge-transfer" style="margin-left:5px;">⚠️転入警戒</span>`;
+                    }
+                    
+                    let oshiBadge = h.isOshi ? `<span style="color:#fb923c; font-weight:bold;">💡推し</span> ` : "";
+                    pHTML += `<div class="pickup-horse">${oshiBadge}${horseDisplay} ${badge}</div>`;
+                });
+                pickupList.innerHTML = pHTML;
+                pickupContainer.classList.add('active');
+            } else {
+                pickupList.innerHTML = "";
+                pickupContainer.classList.remove('active');
+            }
+
+            sortCards('num');
+
+        } catch (error) {
+            console.error(error);
+            statusEl.innerText = "❌ エラーが発生しました。データ形式をご確認ください。";
+        }
+    }
+</script>
+
+</body>
+</html>
