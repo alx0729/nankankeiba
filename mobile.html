@@ -487,6 +487,108 @@
         return data;
     }
 
+    function parseNetkeibaListFormat(md) {
+        const lines = md.split('\n').map(l => l.trim()).filter(l => l !== '');
+        let horses = [];
+        let currentHorse = null;
+        let pastRaceCount = 0;
+
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+
+            const oddsMatch = line.match(/^([\d\.]+|---)\s*\((?:\d+|---)人気\)/);
+            if (oddsMatch && i + 2 < lines.length) {
+                const jockeyLine = lines[i+1];
+                const weightLine = lines[i+2];
+                
+                if (weightLine.match(/^\d{2}\.\d$/) || weightLine.match(/^\d{2}$/)) {
+                    let odds = oddsMatch[1];
+                    let jockeyParts = jockeyLine.split(/[\s　]+/);
+                    let jockey = jockeyParts.length > 1 ? jockeyParts[jockeyParts.length - 1] : jockeyParts[0];
+                    let weight = weightLine;
+                    
+                    let umaban = "99";
+                    let waku = "99";
+                    let name = "不明";
+
+                    let foundUmaban = false;
+                    let umabanIndex = -1;
+                    for (let j = i - 1; j >= Math.max(0, i - 30); j--) {
+                        if (/^\d+$/.test(lines[j])) {
+                            if (!foundUmaban) {
+                                umaban = lines[j];
+                                foundUmaban = true;
+                                umabanIndex = j;
+                            } else {
+                                waku = lines[j];
+                                break;
+                            }
+                        }
+                    }
+
+                    for (let j = i - 1; j > umabanIndex; j--) {
+                        if (lines[j].match(/\[([^\]]+)\]\(https:\/\/db\.netkeiba\.com\/horse\//)) {
+                            name = lines[j];
+                            break;
+                        }
+                    }
+                    
+                    if (name === "不明") {
+                        for (let j = i - 1; j > umabanIndex; j--) {
+                            if (lines[j].startsWith('(') && lines[j].endsWith(')')) {
+                                name = lines[j-2] || "不明";
+                                break;
+                            }
+                        }
+                    }
+
+                    let kankaku = "";
+                    if (lines[i-2] && lines[i-2].includes('週')) kankaku = lines[i-2];
+                    else if (lines[i-1] && lines[i-1].includes('週')) kankaku = lines[i-1];
+                    if (kankaku) name += ` ${kankaku}`;
+
+                    currentHorse = {
+                        '枠': waku,
+                        '馬番': umaban,
+                        '馬名': name,
+                        'オッズ': line,
+                        '騎手': `${jockey} ${weight}`,
+                        '前走': '', '2走': '', '3走': '', '4走': '', '5走': ''
+                    };
+                    horses.push(currentHorse);
+                    pastRaceCount = 0;
+                }
+                continue;
+            }
+
+            if (currentHorse) {
+                const raceDateMatch = line.match(/^(\d{4}\.\d{2}\.\d{2})\s+([^\s]+)\s+(\d+)?/);
+                if (raceDateMatch) {
+                    pastRaceCount++;
+                    if (pastRaceCount > 5) continue;
+                    
+                    let pastKey = pastRaceCount === 1 ? '前走' : `${pastRaceCount}走`;
+                    let pastData = line + ' ';
+                    
+                    let j = i + 1;
+                    while (j < lines.length) {
+                        if (lines[j].match(/^(\d{4}\.\d{2}\.\d{2})\s+/)) break;
+                        if (lines[j].match(/^([\d\.]+|---)\s*\((?:\d+|---)人気\)/)) break;
+                        if (/^\d+$/.test(lines[j]) && j+1 < lines.length && /^\d+$/.test(lines[j+1])) break;
+                        
+                        if (!lines[j].includes('映像を見る') && !lines[j].includes('アイコン') && !lines[j].match(/^[-*]+$/) && lines[j] !== '--' && lines[j] !== '\\--') {
+                            pastData += lines[j] + ' ';
+                        }
+                        j++;
+                    }
+                    currentHorse[pastKey] = pastData.trim();
+                }
+            }
+        }
+        
+        return horses;
+    }
+
     function detectRaceConditions(text) {
         let normalizedText = text.replace(/\[([^\]]+)\]\([^\)]*\)/g, '$1');
         normalizedText = normalizedText.replace(/https?:\/\/[^\s\)]+/g, '');
@@ -640,7 +742,10 @@
         }
 
         try {
-            const raceData = parseMarkdownTable(raceInput);
+            let raceData = parseMarkdownTable(raceInput);
+            if (raceData.length === 0) {
+                raceData = parseNetkeibaListFormat(raceInput);
+            }
             if (raceData.length === 0) {
                 statusEl.innerText = "⚠️ 馬柱データからテーブルを読み取れませんでした。";
                 return;
